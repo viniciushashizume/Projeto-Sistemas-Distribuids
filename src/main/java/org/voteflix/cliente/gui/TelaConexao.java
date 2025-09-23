@@ -1,9 +1,12 @@
 package org.voteflix.cliente.gui;
 
+import org.voteflix.cliente.servico.ServicoCliente;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
-import org.voteflix.cliente.servico.ServicoCliente;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 
 public class TelaConexao extends JFrame {
 
@@ -16,31 +19,43 @@ public class TelaConexao extends JFrame {
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(350, 200);
-        setLocationRelativeTo(null); // Centraliza a janela
-        setLayout(new GridLayout(3, 2, 10, 10));
+        setLocationRelativeTo(null);
 
-        // Painel para organizar os componentes
-        JPanel painel = new JPanel(new GridLayout(3, 2, 10, 10));
-        painel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        JPanel painel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        painel.add(new JLabel("IP do Servidor:"));
-        campoIp = new JTextField("127.0.0.1"); // IP local como padrão
-        painel.add(campoIp);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        painel.add(new JLabel("IP do Servidor:"), gbc);
 
-        painel.add(new JLabel("Porta:"));
-        campoPorta = new JTextField("12345"); // Porta comum como padrão
-        painel.add(campoPorta);
+        gbc.gridx = 1;
+        campoIp = new JTextField("127.0.0.1");
+        painel.add(campoIp, gbc);
 
-        painel.add(new JLabel()); // Espaço em branco
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        painel.add(new JLabel("Porta:"), gbc);
+
+        gbc.gridx = 1;
+        campoPorta = new JTextField("12345");
+        painel.add(campoPorta, gbc);
+
+        gbc.gridwidth = 2;
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.CENTER;
         botaoConectar = new JButton("Conectar");
-        painel.add(botaoConectar);
+        painel.add(botaoConectar, gbc);
 
         add(painel);
 
-        botaoConectar.addActionListener(e -> conectarAoServidor());
+        botaoConectar.addActionListener(e -> testarEConfigurarConexao());
     }
 
-    private void conectarAoServidor() {
+    private void testarEConfigurarConexao() {
         String ip = campoIp.getText().trim();
         String portaStr = campoPorta.getText().trim();
 
@@ -51,21 +66,37 @@ public class TelaConexao extends JFrame {
 
         try {
             int porta = Integer.parseInt(portaStr);
-            ServicoCliente.getInstancia().conectar(ip, porta);
+            if (porta < 1 || porta > 65535) {
+                JOptionPane.showMessageDialog(this, "A porta deve ser um número entre 1 e 65535.", "Erro de Formato", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
-            // Se a conexão for bem-sucedida, abre a tela de login
-            JOptionPane.showMessageDialog(this, "Conectado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            // --- VALIDAÇÃO ATRAVÉS DE TESTE DE CONEXÃO REAL ---
+            try (Socket socket = new Socket()) {
+                // Tenta conectar com um timeout de 3 segundos (3000 ms)
+                socket.connect(new InetSocketAddress(ip, porta), 3000);
+                // Se a linha acima não lançar uma exceção, o servidor está ativo.
+                // O socket de teste é fechado automaticamente pelo try-with-resources.
+            } catch (IOException ex) {
+                // Se caiu aqui, não foi possível conectar (timeout, host não encontrado, porta recusada, etc.)
+                JOptionPane.showMessageDialog(this,
+                        "Falha ao conectar ao servidor.\nVerifique o IP, a porta e se o servidor está ativo.\n\nErro: " + ex.getMessage(),
+                        "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
+                return; // Impede o programa de continuar
+            }
+
+            // Se a conexão foi testada com sucesso, armazena os dados e avança para o login.
+            JOptionPane.showMessageDialog(this, "Conexão com o servidor estabelecida com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            ServicoCliente.getInstancia().configurarConexao(ip, porta);
             abrirTelaLogin();
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "A porta deve ser um número válido.", "Erro de Formato", JOptionPane.ERROR_MESSAGE);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Erro ao conectar ao servidor: " + ex.getMessage(), "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void abrirTelaLogin() {
-        this.dispose(); // Fecha a tela de conexão
+        this.dispose();
         TelaLogin telaLogin = new TelaLogin();
         telaLogin.setVisible(true);
     }

@@ -10,7 +10,7 @@ import java.sql.SQLException;
 
 public class UsuarioDao {
 
-    public Usuario buscarUsuarioPorNome(String nome) {
+    public Usuario buscarUsuarioPorNome(String nome) throws SQLException {
         String sql = "SELECT * FROM usuarios WHERE nome = ?";
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -25,13 +25,11 @@ public class UsuarioDao {
                         rs.getString("senha")
                 );
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
         return null;
     }
 
-    public boolean adicionarUsuario(Usuario usuario) {
+    public boolean adicionarUsuario(Usuario usuario) throws SQLException {
         String sql = "INSERT INTO usuarios(nome, senha) VALUES(?, ?)";
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -40,10 +38,6 @@ public class UsuarioDao {
             pstmt.setString(2, usuario.getSenha());
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
         }
     }
 }

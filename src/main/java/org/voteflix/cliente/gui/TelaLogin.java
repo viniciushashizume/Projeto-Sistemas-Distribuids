@@ -67,20 +67,15 @@ public class TelaLogin extends JFrame {
             return;
         }
 
-        // --- CORREÇÃO AQUI ---
-        // Monta o JSON de requisição conforme o Protocolo de Troca de Mensagens
         JSONObject requisicao = new JSONObject();
         requisicao.put("operacao", "LOGIN");
-        // A chave para o nome de usuário deve ser "usuario", não "nome".
         requisicao.put("usuario", usuario);
         requisicao.put("senha", senha);
-        // --- FIM DA CORREÇÃO ---
 
         try {
             String respostaJson = ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
             JSONObject resposta = new JSONObject(respostaJson);
 
-            // O protocolo especifica status "200 " com um espaço, é bom tratar isso.
             String status = resposta.getString("status").trim();
 
             if ("200".equals(status)) {
@@ -88,7 +83,6 @@ public class TelaLogin extends JFrame {
                 JOptionPane.showMessageDialog(this, "Login realizado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 abrirTelaPrincipal(token);
             } else {
-                // Trata outros status de erro
                 String mensagemErro = "Erro ao fazer login. Status: " + status;
                 if ("401".equals(status)) mensagemErro = "Credenciais inválidas.";
                 if ("404".equals(status)) mensagemErro = "Usuário não encontrado.";
@@ -104,15 +98,13 @@ public class TelaLogin extends JFrame {
 
     private void abrirTelaCadastro() {
         this.dispose();
-        // Assumindo que você tem uma classe TelaCadastro
-        // TelaCadastro telaCadastro = new TelaCadastro();
-        // telaCadastro.setVisible(true);
+        TelaCadastro telaCadastro = new TelaCadastro();
+        telaCadastro.setVisible(true);
     }
 
     private void abrirTelaPrincipal(String token) {
         this.dispose();
-        // Assumindo que você tem uma classe TelaPrincipal
-        // TelaPrincipal telaPrincipal = new TelaPrincipal(token);
-        // telaPrincipal.setVisible(true);
+        TelaPrincipal telaPrincipal = new TelaPrincipal(token);
+        telaPrincipal.setVisible(true);
     }
 }

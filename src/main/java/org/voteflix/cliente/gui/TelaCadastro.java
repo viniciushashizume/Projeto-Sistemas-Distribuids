@@ -1,15 +1,10 @@
 package org.voteflix.cliente.gui;
 
 import org.json.JSONObject;
-import org.voteflix.cliente.servico.ServicoCliente; // Corrigi o nome do pacote para seguir o padrão
+import org.voteflix.cliente.servico.ServicoCliente;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
-import org.voteflix.cliente.gui.TelaLogin;
-
-// A importação que faltava
-
-
 
 public class TelaCadastro extends JFrame {
 
@@ -84,7 +79,6 @@ public class TelaCadastro extends JFrame {
             return;
         }
 
-        // Monta o JSON de requisição com a estrutura aninhada correta
         JSONObject dadosUsuario = new JSONObject();
         dadosUsuario.put("nome", nome);
         dadosUsuario.put("senha", senha);
@@ -110,14 +104,12 @@ public class TelaCadastro extends JFrame {
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "Erro de comunicação com o servidor: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
-            // Adicionado um catch genérico para pegar outros possíveis erros de JSON
             JOptionPane.showMessageDialog(this, "Ocorreu um erro inesperado: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void voltarParaLogin() {
         this.dispose();
-        // A classe TelaLogin precisa estar acessível aqui
         TelaLogin telaLogin = new TelaLogin();
         telaLogin.setVisible(true);
     }

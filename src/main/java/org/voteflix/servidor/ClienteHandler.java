@@ -25,8 +25,8 @@ public class ClienteHandler extends Thread {
                 BufferedReader in = new BufferedReader(new InputStreamReader(clienteSocket.getInputStream()));
                 PrintWriter out = new PrintWriter(clienteSocket.getOutputStream(), true)
         ) {
-            String requisicaoJson;
-            while ((requisicaoJson = in.readLine()) != null) {
+            String requisicaoJson = in.readLine();
+            if (requisicaoJson != null) {
                 System.out.println("Requisição recebida: " + requisicaoJson);
                 JSONObject resposta = processarRequisicao(requisicaoJson);
                 out.println(resposta.toString());

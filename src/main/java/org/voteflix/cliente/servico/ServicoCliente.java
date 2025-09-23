@@ -10,14 +10,13 @@ import java.net.UnknownHostException;
 public class ServicoCliente {
 
     private static ServicoCliente instancia;
-    private Socket socket;
-    private PrintWriter out;
-    private BufferedReader in;
+    private String ipServidor;
+    private int portaServidor;
 
     // Construtor privado para implementar o padrão Singleton
     private ServicoCliente() {}
 
-    // Padrão Singleton para garantir uma única instância do serviço de conexão
+    // Padrão Singleton para garantir uma única instância
     public static synchronized ServicoCliente getInstancia() {
         if (instancia == null) {
             instancia = new ServicoCliente();
@@ -25,36 +24,41 @@ public class ServicoCliente {
         return instancia;
     }
 
-    public void conectar(String ip, int porta) throws UnknownHostException, IOException {
-        // Evita múltiplas conexões
-        if (socket != null && socket.isConnected()) {
-            return;
-        }
-        socket = new Socket(ip, porta);
-        out = new PrintWriter(socket.getOutputStream(), true);
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    /**
+     * Armazena os dados de conexão para serem usados em futuras requisições.
+     * @param ip O IP do servidor.
+     * @param porta A porta do servidor.
+     */
+    public void configurarConexao(String ip, int porta) {
+        this.ipServidor = ip;
+        this.portaServidor = porta;
     }
 
+    /**
+     * Abre uma nova conexão, envia uma requisição, recebe a resposta e fecha a conexão.
+     * @param jsonRequisicao A string JSON da requisição.
+     * @return A string JSON da resposta.
+     * @throws IOException Se ocorrer um erro de comunicação.
+     */
     public String enviarRequisicao(String jsonRequisicao) throws IOException {
-        if (out == null || in == null) {
-            throw new IOException("Cliente não conectado ao servidor.");
+        if (ipServidor == null || portaServidor == 0) {
+            throw new IOException("A conexão com o servidor não foi configurada.");
         }
-        // Envia a requisição para o servidor
-        out.println(jsonRequisicao);
-        // Retorna a resposta do servidor
-        return in.readLine();
-    }
 
-    public void desconectar() throws IOException {
-        if (in != null) in.close();
-        if (out != null) out.close();
-        if (socket != null) socket.close();
-        socket = null;
-        in = null;
-        out = null;
-    }
-
-    public boolean isConectado() {
-        return socket != null && socket.isConnected() && !socket.isClosed();
+        // Usando try-with-resources para garantir que o socket e os streams sejam fechados
+        try (
+                Socket socket = new Socket(ipServidor, portaServidor);
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))
+        ) {
+            // Envia a requisição para o servidor
+            out.println(jsonRequisicao);
+            // Lê e retorna a resposta do servidor
+            return in.readLine();
+        } catch (UnknownHostException e) {
+            throw new IOException("Host desconhecido: " + ipServidor, e);
+        } catch (IOException e) {
+            throw new IOException("Erro de E/S ao comunicar com o servidor: " + e.getMessage(), e);
+        }
     }
 }
