@@ -2,21 +2,26 @@ package org.voteflix.servidor;
 
 import org.json.JSONObject;
 import org.voteflix.servico.UsuarioServico;
+import org.voteflix.servidor.gui.TelaServidor;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class ClienteHandler extends Thread {
 
     private final Socket clienteSocket;
     private final UsuarioServico usuarioServico;
+    private final TelaServidor telaServidor; // Referência para a GUI do servidor
 
-    public ClienteHandler(Socket socket) {
+    public ClienteHandler(Socket socket, TelaServidor tela) {
         this.clienteSocket = socket;
         this.usuarioServico = new UsuarioServico();
+        this.telaServidor = tela;
     }
 
     @Override
@@ -27,19 +32,19 @@ public class ClienteHandler extends Thread {
         ) {
             String requisicaoJson = in.readLine();
             if (requisicaoJson != null) {
-                System.out.println("Requisição recebida: " + requisicaoJson);
+                log("Requisição recebida de " + clienteSocket.getInetAddress() + ": " + requisicaoJson);
                 JSONObject resposta = processarRequisicao(requisicaoJson);
                 out.println(resposta.toString());
-                System.out.println("Resposta enviada: " + resposta.toString());
+                log("Resposta enviada para " + clienteSocket.getInetAddress() + ": " + resposta.toString());
             }
         } catch (IOException e) {
-            System.err.println("Erro de comunicação com o cliente: " + e.getMessage());
+            log("Erro de comunicação com o cliente " + clienteSocket.getInetAddress() + ": " + e.getMessage());
         } finally {
             try {
                 clienteSocket.close();
-                System.out.println("Conexão com o cliente fechada.");
+                log("Conexão com o cliente " + clienteSocket.getInetAddress() + " fechada.");
             } catch (IOException e) {
-                System.err.println("Erro ao fechar o socket do cliente: " + e.getMessage());
+                log("Erro ao fechar o socket do cliente " + clienteSocket.getInetAddress() + ": " + e.getMessage());
             }
         }
     }
@@ -54,6 +59,12 @@ public class ClienteHandler extends Thread {
                     return usuarioServico.realizarLogin(requisicao);
                 case "CRIAR_USUARIO":
                     return usuarioServico.criarUsuario(requisicao);
+                case "LOGOUT":
+                    return usuarioServico.realizarLogout(requisicao);
+                case "EDITAR_PROPRIO_USUARIO":
+                    return usuarioServico.editarProprioUsuario(requisicao);
+                case "EXCLUIR_PROPRIO_USUARIO":
+                    return usuarioServico.excluirProprioUsuario(requisicao);
                 default:
                     JSONObject resposta = new JSONObject();
                     resposta.put("status", "400");
@@ -61,10 +72,20 @@ public class ClienteHandler extends Thread {
                     return resposta;
             }
         } catch (Exception e) {
+            log("Erro interno ao processar requisição: " + e.getMessage());
             JSONObject resposta = new JSONObject();
             resposta.put("status", "500");
             resposta.put("mensagem", "Erro interno no servidor: " + e.getMessage());
             return resposta;
+        }
+    }
+
+    private void log(String mensagem) {
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+        String logFormatado = "[" + timestamp + "] " + mensagem;
+        System.out.println(logFormatado);
+        if (telaServidor != null) {
+            telaServidor.adicionarLog(logFormatado);
         }
     }
 }
