@@ -1,7 +1,13 @@
 package org.voteflix.servidor.gui;
 
+import org.voteflix.bd.UsuarioBD;
+import org.voteflix.model.Usuario;
+
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.sql.SQLException;
 import java.util.Set;
 
 public class TelaServidor extends JFrame {
@@ -9,9 +15,11 @@ public class TelaServidor extends JFrame {
     private final JTextArea areaLogs;
     private final DefaultListModel<String> modelListaUsuarios;
     private final JList<String> listaUsuarios;
+    private final UsuarioBD usuarioBD;
 
     public TelaServidor() {
         super("VoteFlix - Painel do Servidor");
+        this.usuarioBD = new UsuarioBD();
 
         // Configurações da janela principal
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -41,12 +49,36 @@ public class TelaServidor extends JFrame {
 
         // Painel de Usuários Ativos
         JPanel painelUsuarios = new JPanel(new BorderLayout());
-        painelUsuarios.setBorder(BorderFactory.createTitledBorder("Usuários Ativos"));
+        painelUsuarios.setBorder(BorderFactory.createTitledBorder("Usuários Ativos (clique duplo para ver detalhes)"));
         modelListaUsuarios = new DefaultListModel<>();
         listaUsuarios = new JList<>(modelListaUsuarios);
         JScrollPane scrollUsuarios = new JScrollPane(listaUsuarios);
         painelUsuarios.add(scrollUsuarios, BorderLayout.CENTER);
         splitPane.setRightComponent(painelUsuarios);
+
+        listaUsuarios.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent evt) {
+                if (evt.getClickCount() == 2) { // Duplo clique
+                    int index = listaUsuarios.locationToIndex(evt.getPoint());
+                    String nomeUsuario = modelListaUsuarios.getElementAt(index);
+                    exibirDetalhesUsuario(nomeUsuario);
+                }
+            }
+        });
+    }
+
+    private void exibirDetalhesUsuario(String nomeUsuario) {
+        try {
+            Usuario usuario = usuarioBD.buscarUsuarioPorNome(nomeUsuario);
+            if (usuario != null) {
+                TelaDetalhesUsuario telaDetalhes = new TelaDetalhesUsuario(this, usuario);
+                telaDetalhes.setVisible(true);
+            } else {
+                JOptionPane.showMessageDialog(this, "Usuário não encontrado no banco de dados.", "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Erro ao acessar o banco de dados: " + e.getMessage(), "Erro de Banco de Dados", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**
