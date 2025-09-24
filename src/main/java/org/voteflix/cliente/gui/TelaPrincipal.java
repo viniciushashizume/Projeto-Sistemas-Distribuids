@@ -6,6 +6,8 @@ import org.json.JSONObject;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class TelaPrincipal extends JFrame {
 
@@ -15,7 +17,15 @@ public class TelaPrincipal extends JFrame {
         super("VoteFlix - Painel do Usuário");
         this.token = token;
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // ALTERAÇÃO: Intercepta o evento de fechamento da janela
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                desconectarEFechar();
+            }
+        });
+
         setSize(500, 400);
         setLocationRelativeTo(null);
 
@@ -23,8 +33,6 @@ public class TelaPrincipal extends JFrame {
         setLayout(new BorderLayout());
 
         // Mensagem de boas-vindas
-        // Para exibir o nome, precisaríamos decodificar o JWT, o que é mais complexo.
-        // Por enquanto, uma mensagem genérica.
         JLabel labelBoasVindas = new JLabel("Bem-vindo ao VoteFlix!", SwingConstants.CENTER);
         labelBoasVindas.setFont(new Font("Arial", Font.BOLD, 20));
         add(labelBoasVindas, BorderLayout.CENTER);
@@ -67,7 +75,6 @@ public class TelaPrincipal extends JFrame {
     }
 
     private void excluirConta() {
-        // Conforme o protocolo, a operação para excluir a própria conta [cite: 16]
         JSONObject requisicao = new JSONObject();
         requisicao.put("operacao", "EXCLUIR_PROPRIO_USUARIO");
         requisicao.put("token", this.token);
@@ -94,14 +101,34 @@ public class TelaPrincipal extends JFrame {
         requisicao.put("token", this.token);
 
         try {
-            // O servidor pode ou não invalidar o token, mas o cliente deve tratar o logout
             ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
         } catch (IOException e) {
-            // Mesmo com erro, prosseguir com o logout no cliente
             System.err.println("Erro ao notificar servidor sobre logout: " + e.getMessage());
         } finally {
             JOptionPane.showMessageDialog(this, "Você foi desconectado.", "Logout", JOptionPane.INFORMATION_MESSAGE);
             voltarParaLogin();
+        }
+    }
+
+    /**
+     * NOVO MÉTODO: Envia a notificação de logout para o servidor e encerra a aplicação.
+     * Chamado quando o usuário fecha a janela pelo botão 'X'.
+     */
+    private void desconectarEFechar() {
+        JSONObject requisicao = new JSONObject();
+        requisicao.put("operacao", "LOGOUT");
+        requisicao.put("token", this.token);
+
+        try {
+            // Tenta notificar o servidor sobre o logout.
+            ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
+        } catch (IOException e) {
+            // Apenas registra o erro, mas não impede o fechamento da aplicação.
+            System.err.println("Erro ao notificar servidor sobre logout no fechamento: " + e.getMessage());
+        } finally {
+            // Garante que a janela seja fechada e a aplicação encerrada.
+            dispose();
+            System.exit(0);
         }
     }
 

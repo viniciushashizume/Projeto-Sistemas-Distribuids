@@ -71,6 +71,15 @@ public class Servidor {
         }
     }
 
+    /**
+     * Verifica se um usuário já está na lista de ativos.
+     * @param nome O nome do usuário a ser verificado.
+     * @return true se o usuário estiver ativo, false caso contrário.
+     */
+    public static boolean isUsuarioAtivo(String nome) {
+        return usuariosAtivos.contains(nome);
+    }
+
     private static void log(String mensagem) {
         String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
         String logFormatado = "[" + timestamp + "] " + mensagem;

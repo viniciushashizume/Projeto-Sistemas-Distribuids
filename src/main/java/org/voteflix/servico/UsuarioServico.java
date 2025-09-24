@@ -16,7 +16,7 @@ public class UsuarioServico {
         this.usuarioBD = new UsuarioBD();
     }
 
-    // ... (métodos realizarLogin, criarUsuario, realizarLogout, editarProprioUsuario existentes)
+    // ... (métodos criarUsuario, realizarLogout, editarProprioUsuario, excluirProprioUsuario existentes)
     public JSONObject realizarLogin(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
@@ -29,6 +29,15 @@ public class UsuarioServico {
                 resposta.put("status", "404"); // Usuário não encontrado
                 return resposta;
             }
+
+            // <-- INÍCIO DA ALTERAÇÃO -->
+            // Verifica se o usuário já está na lista de usuários ativos
+            if (Servidor.isUsuarioAtivo(usuario.getNome())) {
+                resposta.put("status", "409"); // Conflito
+                resposta.put("mensagem", "Este usuário já está logado em outro dispositivo.");
+                return resposta;
+            }
+            // <-- FIM DA ALTERAÇÃO -->
 
             if (senha.equals(usuario.getSenha())) {
                 String token = JwtUtil.gerarToken(usuario);
@@ -140,11 +149,6 @@ public class UsuarioServico {
         return resposta;
     }
 
-    /**
-     * Exclui a conta do próprio usuário. <-- NOVO MÉTODO
-     * @param requisicao A requisição JSON contendo o token do usuário.
-     * @return Um JSONObject com o status da operação.
-     */
     public JSONObject excluirProprioUsuario(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
