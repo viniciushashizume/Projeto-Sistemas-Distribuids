@@ -24,7 +24,7 @@ public class TelaConfiguracaoServidor extends JDialog {
         add(new JLabel("Porta do Servidor:"), gbc);
 
         gbc.gridx = 1;
-        campoPorta = new JTextField("12345", 10);
+        campoPorta = new JTextField("20001", 10);
         add(campoPorta, gbc);
 
         gbc.gridx = 0;
