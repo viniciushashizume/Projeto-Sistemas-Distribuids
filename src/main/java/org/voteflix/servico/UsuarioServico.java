@@ -182,4 +182,36 @@ public class UsuarioServico {
         }
         return resposta;
     }
+
+    public JSONObject getProprioUsuario(JSONObject requisicao) {
+        JSONObject resposta = new JSONObject();
+        try {
+            String token = requisicao.getString("token");
+            int usuarioId = JwtUtil.getIdFromToken(token);
+
+            Usuario usuario = usuarioBD.buscarUsuarioPorId(usuarioId);
+
+            if (usuario != null) {
+                JSONObject dadosUsuario = new JSONObject();
+                dadosUsuario.put("nome", usuario.getNome());
+                dadosUsuario.put("senha", usuario.getSenha());
+                resposta.put("status", "200");
+                resposta.put("usuario", dadosUsuario);
+            } else {
+                resposta.put("status", "404");
+                resposta.put("mensagem", "Usuário não encontrado.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Erro de banco de dados ao buscar usuário: " + e.getMessage());
+            e.printStackTrace();
+            resposta.put("status", "500");
+            resposta.put("mensagem", "Erro ao acessar o banco de dados.");
+        } catch (Exception e) {
+            System.err.println("Erro ao processar token ou requisição: " + e.getMessage());
+            e.printStackTrace();
+            resposta.put("status", "401"); // Unauthorized ou token inválido
+            resposta.put("mensagem", "Token inválido ou requisição malformada.");
+        }
+        return resposta;
+    }
 }

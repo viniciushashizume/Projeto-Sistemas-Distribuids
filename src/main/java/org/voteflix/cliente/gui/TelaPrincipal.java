@@ -39,10 +39,12 @@ public class TelaPrincipal extends JFrame {
 
         // Painel de botões de ação
         JPanel painelAcoes = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton botaoMinhaConta = new JButton("Minha Conta");
         JButton botaoEditar = new JButton("Editar Minha Conta");
         JButton botaoExcluir = new JButton("Excluir Minha Conta");
         JButton botaoLogout = new JButton("Logout");
 
+        painelAcoes.add(botaoMinhaConta);
         painelAcoes.add(botaoEditar);
         painelAcoes.add(botaoExcluir);
         painelAcoes.add(botaoLogout);
@@ -50,6 +52,7 @@ public class TelaPrincipal extends JFrame {
         add(painelAcoes, BorderLayout.SOUTH);
 
         // Ações dos botões
+        botaoMinhaConta.addActionListener(e -> abrirTelaMinhaConta());
         botaoEditar.addActionListener(e -> abrirTelaEdicao());
         botaoExcluir.addActionListener(e -> confirmarExclusao());
         botaoLogout.addActionListener(e -> realizarLogout());
@@ -136,5 +139,10 @@ public class TelaPrincipal extends JFrame {
         this.dispose();
         TelaLogin telaLogin = new TelaLogin();
         telaLogin.setVisible(true);
+    }
+
+    private void abrirTelaMinhaConta() {
+        TelaMinhaConta telaMinhaConta = new TelaMinhaConta(this, token);
+        telaMinhaConta.setVisible(true);
     }
 }

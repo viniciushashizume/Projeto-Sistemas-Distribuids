@@ -65,6 +65,8 @@ public class ClienteHandler extends Thread {
                     return usuarioServico.editarProprioUsuario(requisicao);
                 case "EXCLUIR_PROPRIO_USUARIO":
                     return usuarioServico.excluirProprioUsuario(requisicao);
+                case "GET_PROPRIO_USUARIO":
+                    return usuarioServico.getProprioUsuario(requisicao);
                 default:
                     JSONObject resposta = new JSONObject();
                     resposta.put("status", "400");

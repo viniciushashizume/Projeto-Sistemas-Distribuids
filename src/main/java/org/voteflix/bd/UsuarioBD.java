@@ -72,4 +72,23 @@ public class UsuarioBD {
             return affectedRows > 0;
         }
     }
+
+    public Usuario buscarUsuarioPorId(int id) throws SQLException {
+        String sql = "SELECT * FROM usuarios WHERE id = ?";
+        try (Connection conn = ConexaoBancoDados.conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return new Usuario(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getString("senha")
+                );
+            }
+        }
+        return null;
+    }
 }
