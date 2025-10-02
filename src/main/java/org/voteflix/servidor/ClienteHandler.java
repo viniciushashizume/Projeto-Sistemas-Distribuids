@@ -9,14 +9,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.net.SocketException;
 
 public class ClienteHandler extends Thread {
 
     private final Socket clienteSocket;
     private final UsuarioServico usuarioServico;
-    private final TelaServidor telaServidor; // Referência para a GUI do servidor
+    private final TelaServidor telaServidor;
+    private String nomeUsuarioLogado = null; // Armazena o nome do usuário após o login
 
     public ClienteHandler(Socket socket, TelaServidor tela) {
         this.clienteSocket = socket;
@@ -30,16 +30,29 @@ public class ClienteHandler extends Thread {
                 BufferedReader in = new BufferedReader(new InputStreamReader(clienteSocket.getInputStream()));
                 PrintWriter out = new PrintWriter(clienteSocket.getOutputStream(), true)
         ) {
-            String requisicaoJson = in.readLine();
-            if (requisicaoJson != null) {
+            String requisicaoJson;
+            // Loop para ler múltiplas requisições do mesmo cliente
+            while ((requisicaoJson = in.readLine()) != null) {
                 log("Requisição recebida de " + clienteSocket.getInetAddress() + ": " + requisicaoJson);
-                JSONObject resposta = processarRequisicao(requisicaoJson);
+                JSONObject resposta = processarRequisicao(new JSONObject(requisicaoJson));
                 out.println(resposta.toString());
                 log("Resposta enviada para " + clienteSocket.getInetAddress() + ": " + resposta.toString());
+
+                // Se a operação foi LOGOUT, encerra o loop
+                JSONObject requisicao = new JSONObject(requisicaoJson);
+                if ("LOGOUT".equals(requisicao.optString("operacao"))) {
+                    break;
+                }
             }
+        } catch (SocketException e) {
+            log("Conexão com o cliente " + clienteSocket.getInetAddress() + " foi perdida ou fechada abruptamente.");
         } catch (IOException e) {
             log("Erro de comunicação com o cliente " + clienteSocket.getInetAddress() + ": " + e.getMessage());
         } finally {
+            // Garante que o usuário seja removido da lista de ativos ao desconectar
+            if (nomeUsuarioLogado != null) {
+                Servidor.removerUsuarioAtivo(nomeUsuarioLogado);
+            }
             try {
                 clienteSocket.close();
                 log("Conexão com o cliente " + clienteSocket.getInetAddress() + " fechada.");
@@ -49,26 +62,34 @@ public class ClienteHandler extends Thread {
         }
     }
 
-    private JSONObject processarRequisicao(String requisicaoJson) {
+    private JSONObject processarRequisicao(JSONObject requisicao) {
         try {
-            JSONObject requisicao = new JSONObject(requisicaoJson);
             String operacao = requisicao.getString("operacao");
+            JSONObject resposta;
 
             switch (operacao) {
                 case "LOGIN":
-                    return usuarioServico.realizarLogin(requisicao);
+                    resposta = usuarioServico.realizarLogin(requisicao);
+                    // Se o login for bem-sucedido, armazena o nome do usuário
+                    if ("200 ".equals(resposta.optString("status").trim())) {
+                        this.nomeUsuarioLogado = requisicao.getString("usuario");
+                    }
+                    return resposta;
+                case "LOGOUT":
+                    resposta = usuarioServico.realizarLogout(requisicao);
+                    this.nomeUsuarioLogado = null; // Limpa o nome do usuário
+                    return resposta;
                 case "CRIAR_USUARIO":
                     return usuarioServico.criarUsuario(requisicao);
-                case "LOGOUT":
-                    return usuarioServico.realizarLogout(requisicao);
                 case "EDITAR_PROPRIO_USUARIO":
                     return usuarioServico.editarProprioUsuario(requisicao);
                 case "EXCLUIR_PROPRIO_USUARIO":
+                    this.nomeUsuarioLogado = null; // Limpa o nome ao excluir
                     return usuarioServico.excluirProprioUsuario(requisicao);
                 case "GET_PROPRIO_USUARIO":
                     return usuarioServico.getProprioUsuario(requisicao);
                 default:
-                    JSONObject resposta = new JSONObject();
+                    resposta = new JSONObject();
                     resposta.put("status", "400");
                     resposta.put("mensagem", "Operação desconhecida.");
                     return resposta;
@@ -83,11 +104,9 @@ public class ClienteHandler extends Thread {
     }
 
     private void log(String mensagem) {
-        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-        String logFormatado = "[" + timestamp + "] " + mensagem;
-        System.out.println(logFormatado);
         if (telaServidor != null) {
-            telaServidor.adicionarLog(logFormatado);
+            telaServidor.adicionarLog(mensagem);
         }
+        System.out.println(mensagem);
     }
 }

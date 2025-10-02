@@ -17,7 +17,7 @@ public class TelaPrincipal extends JFrame {
         super("VoteFlix - Painel do Usuário");
         this.token = token;
 
-        // ALTERAÇÃO: Intercepta o evento de fechamento da janela
+        // Intercepta o evento de fechamento da janela
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -28,16 +28,12 @@ public class TelaPrincipal extends JFrame {
 
         setSize(500, 400);
         setLocationRelativeTo(null);
-
-        // Layout Principal
         setLayout(new BorderLayout());
 
-        // Mensagem de boas-vindas
         JLabel labelBoasVindas = new JLabel("Bem-vindo ao VoteFlix!", SwingConstants.CENTER);
         labelBoasVindas.setFont(new Font("Arial", Font.BOLD, 20));
         add(labelBoasVindas, BorderLayout.CENTER);
 
-        // Painel de botões de ação
         JPanel painelAcoes = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton botaoMinhaConta = new JButton("Minha Conta");
         JButton botaoEditar = new JButton("Editar Minha Conta");
@@ -51,7 +47,6 @@ public class TelaPrincipal extends JFrame {
 
         add(painelAcoes, BorderLayout.SOUTH);
 
-        // Ações dos botões
         botaoMinhaConta.addActionListener(e -> abrirTelaMinhaConta());
         botaoEditar.addActionListener(e -> abrirTelaEdicao());
         botaoExcluir.addActionListener(e -> confirmarExclusao());
@@ -89,12 +84,14 @@ public class TelaPrincipal extends JFrame {
 
             if ("200".equals(status)) {
                 JOptionPane.showMessageDialog(this, "Conta excluída com sucesso.", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-                voltarParaLogin();
+                // O logout já é tratado no finally
             } else {
                 JOptionPane.showMessageDialog(this, "Erro ao excluir a conta. Status: " + status, "Erro", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Erro de comunicação: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            desconectarEFechar(); // Garante a desconexão
         }
     }
 
@@ -109,12 +106,12 @@ public class TelaPrincipal extends JFrame {
             System.err.println("Erro ao notificar servidor sobre logout: " + e.getMessage());
         } finally {
             JOptionPane.showMessageDialog(this, "Você foi desconectado.", "Logout", JOptionPane.INFORMATION_MESSAGE);
-            voltarParaLogin();
+            desconectarEVoltarParaLogin();
         }
     }
 
     /**
-     * NOVO MÉTODO: Envia a notificação de logout para o servidor e encerra a aplicação.
+     * Envia a notificação de logout, desconecta e encerra a aplicação.
      * Chamado quando o usuário fecha a janela pelo botão 'X'.
      */
     private void desconectarEFechar() {
@@ -123,19 +120,31 @@ public class TelaPrincipal extends JFrame {
         requisicao.put("token", this.token);
 
         try {
-            // Tenta notificar o servidor sobre o logout.
-            ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
+            if (ServicoCliente.getInstancia().isConectado()) {
+                ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
+            }
         } catch (IOException e) {
-            // Apenas registra o erro, mas não impede o fechamento da aplicação.
             System.err.println("Erro ao notificar servidor sobre logout no fechamento: " + e.getMessage());
         } finally {
-            // Garante que a janela seja fechada e a aplicação encerrada.
+            try {
+                ServicoCliente.getInstancia().desconectar();
+            } catch (IOException e) {
+                System.err.println("Erro ao desconectar: " + e.getMessage());
+            }
             dispose();
             System.exit(0);
         }
     }
 
-    private void voltarParaLogin() {
+    /**
+     * Desconecta e abre a tela de login.
+     */
+    private void desconectarEVoltarParaLogin() {
+        try {
+            ServicoCliente.getInstancia().desconectar();
+        } catch (IOException e) {
+            System.err.println("Erro ao desconectar: " + e.getMessage());
+        }
         this.dispose();
         TelaLogin telaLogin = new TelaLogin();
         telaLogin.setVisible(true);

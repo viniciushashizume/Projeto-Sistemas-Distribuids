@@ -5,8 +5,6 @@ import org.voteflix.cliente.servico.ServicoCliente;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 
 public class TelaConexao extends JFrame {
 
@@ -52,10 +50,10 @@ public class TelaConexao extends JFrame {
 
         add(painel);
 
-        botaoConectar.addActionListener(e -> testarEConfigurarConexao());
+        botaoConectar.addActionListener(e -> conectarAoServidor());
     }
 
-    private void testarEConfigurarConexao() {
+    private void conectarAoServidor() {
         String ip = campoIp.getText().trim();
         String portaStr = campoPorta.getText().trim();
 
@@ -66,32 +64,17 @@ public class TelaConexao extends JFrame {
 
         try {
             int porta = Integer.parseInt(portaStr);
-            if (porta < 1 || porta > 65535) {
-                JOptionPane.showMessageDialog(this, "A porta deve ser um número entre 1 e 65535.", "Erro de Formato", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
 
-            // --- VALIDAÇÃO ATRAVÉS DE TESTE DE CONEXÃO REAL ---
-            try (Socket socket = new Socket()) {
-                // Tenta conectar com um timeout de 3 segundos (3000 ms)
-                socket.connect(new InetSocketAddress(ip, porta), 3000);
-                // Se a linha acima não lançar uma exceção, o servidor está ativo.
-                // O socket de teste é fechado automaticamente pelo try-with-resources.
-            } catch (IOException ex) {
-                // Se caiu aqui, não foi possível conectar (timeout, host não encontrado, porta recusada, etc.)
-                JOptionPane.showMessageDialog(this,
-                        "Falha ao conectar ao servidor.\nVerifique o IP, a porta e se o servidor está ativo.\n\nErro: " + ex.getMessage(),
-                        "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
-                return; // Impede o programa de continuar
-            }
+            // Tenta estabelecer a conexão persistente
+            ServicoCliente.getInstancia().conectar(ip, porta);
 
-            // Se a conexão foi testada com sucesso, armazena os dados e avança para o login.
             JOptionPane.showMessageDialog(this, "Conexão com o servidor estabelecida com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-            ServicoCliente.getInstancia().configurarConexao(ip, porta);
             abrirTelaLogin();
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "A porta deve ser um número válido.", "Erro de Formato", JOptionPane.ERROR_MESSAGE);
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Falha ao conectar ao servidor.\nVerifique o IP, a porta e se o servidor está ativo.\n\nErro: " + ex.getMessage(), "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
         }
     }
 

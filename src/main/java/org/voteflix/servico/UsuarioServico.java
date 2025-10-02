@@ -41,7 +41,7 @@ public class UsuarioServico {
 
             if (senha.equals(usuario.getSenha())) {
                 String token = JwtUtil.gerarToken(usuario);
-                resposta.put("status", "200 "); // Sucesso
+                resposta.put("status", "200"); // Sucesso
                 resposta.put("token", token);
                 // Adiciona usuário à lista de ativos
                 Servidor.adicionarUsuarioAtivo(usuario.getNome());
