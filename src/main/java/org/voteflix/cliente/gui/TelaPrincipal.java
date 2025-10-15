@@ -151,6 +151,7 @@ public class TelaPrincipal extends JFrame {
     }
 
     private void abrirTelaMinhaConta() {
+
         TelaMinhaConta telaMinhaConta = new TelaMinhaConta(this, token);
         telaMinhaConta.setVisible(true);
     }

@@ -86,8 +86,8 @@ public class ClienteHandler extends Thread {
                 case "EXCLUIR_PROPRIO_USUARIO":
                     this.nomeUsuarioLogado = null; // Limpa o nome ao excluir
                     return usuarioServico.excluirProprioUsuario(requisicao);
-                case "GET_PROPRIO_USUARIO":
-                    return usuarioServico.getProprioUsuario(requisicao);
+                case "LISTAR_PROPRIO_USUARIO":
+                    return usuarioServico.listarProprioUsuario(requisicao);
                 default:
                     resposta = new JSONObject();
                     resposta.put("status", "400");

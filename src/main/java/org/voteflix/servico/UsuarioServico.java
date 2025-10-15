@@ -183,7 +183,7 @@ public class UsuarioServico {
         return resposta;
     }
 
-    public JSONObject getProprioUsuario(JSONObject requisicao) {
+    public JSONObject listarProprioUsuario(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
             String token = requisicao.getString("token");
