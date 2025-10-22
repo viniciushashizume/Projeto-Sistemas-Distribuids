@@ -49,7 +49,7 @@ public class TelaMinhaConta extends JDialog {
             if ("200".equals(resposta.getString("status"))) {
                 JSONObject dadosUsuario = resposta.getJSONObject("usuario");
                 labelNomeUsuario.setText(dadosUsuario.getString("nome"));
-                labelSenha.setText(dadosUsuario.getString("senha"));
+                //labelSenha.setText(dadosUsuario.getString("senha"));
             } else {
                 JOptionPane.showMessageDialog(this, "Erro ao carregar dados: " + resposta.optString("mensagem", "Status: " + resposta.getString("status")), "Erro", JOptionPane.ERROR_MESSAGE);
                 dispose();

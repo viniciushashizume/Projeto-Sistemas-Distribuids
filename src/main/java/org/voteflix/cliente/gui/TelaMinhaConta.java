@@ -33,9 +33,9 @@ public class TelaMinhaConta extends JDialog {
         campoUsuario.setEditable(false);
         painel.add(campoUsuario, gbc);
 
-        gbc.gridx = 0;
+        /*gbc.gridx = 0;
         gbc.gridy = 1;
-        painel.add(new JLabel("Senha:"), gbc);
+        painel.add(new JLabel("Senha:"), gbc);*/
 
         gbc.gridx = 1;
         JTextField campoSenha = new JTextField(20);
@@ -55,7 +55,7 @@ public class TelaMinhaConta extends JDialog {
 
     private void carregarInformacoesUsuario(JTextField campoUsuario, JTextField campoSenha) {
         JSONObject requisicao = new JSONObject();
-        requisicao.put("operacao", "GET_PROPRIO_USUARIO");
+        requisicao.put("operacao", "LISTAR_PROPRIO_USUARIO");
         requisicao.put("token", this.token);
 
         try {
@@ -64,9 +64,9 @@ public class TelaMinhaConta extends JDialog {
             String status = resposta.getString("status").trim();
 
             if ("200".equals(status)) {
-                JSONObject usuario = resposta.getJSONObject("usuario");
-                campoUsuario.setText(usuario.getString("nome"));
-                campoSenha.setText(usuario.getString("senha"));
+                String nomeUsuario = resposta.getString("usuario"); // Alteração aqui
+                campoUsuario.setText(nomeUsuario);
+                //campoSenha.setText(usuario.getString("senha"));
             } else {
                 JOptionPane.showMessageDialog(this, "Erro ao buscar informações do usuário. Status: " + status, "Erro", JOptionPane.ERROR_MESSAGE);
                 dispose();

@@ -192,11 +192,11 @@ public class UsuarioServico {
             Usuario usuario = usuarioBD.buscarUsuarioPorId(usuarioId);
 
             if (usuario != null) {
-                JSONObject dadosUsuario = new JSONObject();
-                dadosUsuario.put("nome", usuario.getNome());
-                dadosUsuario.put("senha", usuario.getSenha());
+                //JSONObject dadosUsuario = new JSONObject();
+                //dadosUsuario.put("nome", usuario.getNome());
+                //dadosUsuario.put("senha", usuario.getSenha());
                 resposta.put("status", "200");
-                resposta.put("usuario", dadosUsuario);
+                resposta.put("usuario", usuario.getNome());
             } else {
                 resposta.put("status", "404");
                 resposta.put("mensagem", "Usuário não encontrado.");
