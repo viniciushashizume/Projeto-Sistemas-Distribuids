@@ -34,7 +34,7 @@ public class UsuarioServico {
             // Verifica se o usuário já está na lista de usuários ativos
             if (Servidor.isUsuarioAtivo(usuario.getNome())) {
                 resposta.put("status", "409"); // Conflito
-                resposta.put("mensagem", "Este usuário já está logado em outro dispositivo.");
+                //resposta.put("mensagem", "Este usuário já está logado em outro dispositivo.");
                 return resposta;
             }
             // <-- FIM DA ALTERAÇÃO -->
@@ -52,7 +52,7 @@ public class UsuarioServico {
             System.err.println("Erro de banco de dados no login: " + e.getMessage());
             e.printStackTrace();
             resposta.put("status", "500");
-            resposta.put("mensagem", "Erro de banco de dados.");
+           // resposta.put("mensagem", "Erro de banco de dados.");
         }
         return resposta;
     }
@@ -81,13 +81,13 @@ public class UsuarioServico {
                 resposta.put("status", "201"); // Criado
             } else {
                 resposta.put("status", "500");
-                resposta.put("mensagem", "Não foi possível adicionar o usuário.");
+               // resposta.put("mensagem", "Não foi possível adicionar o usuário.");
             }
         } catch (SQLException e) {
             System.err.println("Erro de banco de dados ao criar usuário: " + e.getMessage());
             e.printStackTrace();
             resposta.put("status", "500");
-            resposta.put("mensagem", "Erro ao acessar o banco de dados: " + e.getMessage());
+            //resposta.put("mensagem", "Erro ao acessar o banco de dados: " + e.getMessage());
         }
         return resposta;
     }
@@ -100,12 +100,12 @@ public class UsuarioServico {
             // Remove o usuário da lista de ativos
             Servidor.removerUsuarioAtivo(nomeUsuario);
             resposta.put("status", "200");
-            resposta.put("mensagem", "Logout realizado com sucesso.");
+            //resposta.put("mensagem", "Logout realizado com sucesso.");
         } catch (Exception e) {
             // Mesmo que o token seja inválido, o cliente já se desconectou.
             // Apenas registramos o fato e retornamos sucesso.
             resposta.put("status", "200");
-            resposta.put("mensagem", "Sessão finalizada.");
+            //resposta.put("mensagem", "Sessão finalizada.");
         }
         return resposta;
     }
@@ -121,7 +121,7 @@ public class UsuarioServico {
 
             if (novaSenha.length() < 3 || novaSenha.length() > 20) {
                 resposta.put("status", "422"); // Unprocessable Entity
-                resposta.put("mensagem", "Senha deve ter entre 3 e 20 caracteres.");
+                //resposta.put("mensagem", "Senha deve ter entre 3 e 20 caracteres.");
                 return resposta;
             }
 
@@ -129,22 +129,22 @@ public class UsuarioServico {
 
             if (sucesso) {
                 resposta.put("status", "200"); // OK
-                resposta.put("mensagem", "Senha alterada com sucesso.");
+                //resposta.put("mensagem", "Senha alterada com sucesso.");
             } else {
                 // Isso pode acontecer se o ID do usuário no token não existir mais no BD
                 resposta.put("status", "404");
-                resposta.put("mensagem", "Usuário não encontrado para atualização.");
+                //resposta.put("mensagem", "Usuário não encontrado para atualização.");
             }
         } catch (SQLException e) {
             System.err.println("Erro de banco de dados ao editar usuário: " + e.getMessage());
             e.printStackTrace();
             resposta.put("status", "500");
-            resposta.put("mensagem", "Erro ao acessar o banco de dados.");
+            //resposta.put("mensagem", "Erro ao acessar o banco de dados.");
         } catch (Exception e) {
             System.err.println("Erro ao processar token ou requisição: " + e.getMessage());
             e.printStackTrace();
             resposta.put("status", "401"); // Unauthorized ou token inválido
-            resposta.put("mensagem", "Token inválido ou requisição malformada.");
+            //resposta.put("mensagem", "Token inválido ou requisição malformada.");
         }
         return resposta;
     }
@@ -164,21 +164,21 @@ public class UsuarioServico {
 
             if (sucesso) {
                 resposta.put("status", "200");
-                resposta.put("mensagem", "Conta excluída com sucesso.");
+                //resposta.put("mensagem", "Conta excluída com sucesso.");
             } else {
                 resposta.put("status", "404");
-                resposta.put("mensagem", "Usuário não encontrado para exclusão.");
+                //resposta.put("mensagem", "Usuário não encontrado para exclusão.");
             }
         } catch (SQLException e) {
             System.err.println("Erro de banco de dados ao excluir usuário: " + e.getMessage());
             e.printStackTrace();
             resposta.put("status", "500");
-            resposta.put("mensagem", "Erro ao acessar o banco de dados.");
+            //resposta.put("mensagem", "Erro ao acessar o banco de dados.");
         } catch (Exception e) {
             System.err.println("Erro ao processar token para exclusão: " + e.getMessage());
             e.printStackTrace();
             resposta.put("status", "401");
-            resposta.put("mensagem", "Token inválido ou requisição malformada.");
+            //resposta.put("mensagem", "Token inválido ou requisição malformada.");
         }
         return resposta;
     }
@@ -199,18 +199,18 @@ public class UsuarioServico {
                 resposta.put("usuario", usuario.getNome());
             } else {
                 resposta.put("status", "404");
-                resposta.put("mensagem", "Usuário não encontrado.");
+                //resposta.put("mensagem", "Usuário não encontrado.");
             }
         } catch (SQLException e) {
             System.err.println("Erro de banco de dados ao buscar usuário: " + e.getMessage());
             e.printStackTrace();
             resposta.put("status", "500");
-            resposta.put("mensagem", "Erro ao acessar o banco de dados.");
+            //resposta.put("mensagem", "Erro ao acessar o banco de dados.");
         } catch (Exception e) {
             System.err.println("Erro ao processar token ou requisição: " + e.getMessage());
             e.printStackTrace();
             resposta.put("status", "401"); // Unauthorized ou token inválido
-            resposta.put("mensagem", "Token inválido ou requisição malformada.");
+            //resposta.put("mensagem", "Token inválido ou requisição malformada.");
         }
         return resposta;
     }

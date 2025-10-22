@@ -91,14 +91,14 @@ public class ClienteHandler extends Thread {
                 default:
                     resposta = new JSONObject();
                     resposta.put("status", "400");
-                    resposta.put("mensagem", "Operação desconhecida.");
+                   // resposta.put("mensagem", "Operação desconhecida.");
                     return resposta;
             }
         } catch (Exception e) {
             log("Erro interno ao processar requisição: " + e.getMessage());
             JSONObject resposta = new JSONObject();
             resposta.put("status", "500");
-            resposta.put("mensagem", "Erro interno no servidor: " + e.getMessage());
+            //resposta.put("mensagem", "Erro interno no servidor: " + e.getMessage());
             return resposta;
         }
     }
