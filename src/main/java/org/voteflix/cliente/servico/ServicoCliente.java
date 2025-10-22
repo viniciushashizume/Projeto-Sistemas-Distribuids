@@ -52,10 +52,25 @@ public class ServicoCliente {
         if (out == null || in == null) {
             throw new IOException("Cliente não conectado ao servidor.");
         }
+
+        // --- INÍCIO DA MODIFICAÇÃO ---
+
+        // Log da requisição enviada para o terminal do cliente
+        System.out.println("[CLIENTE - ENVIANDO]: " + jsonRequisicao);
+
         // Envia a requisição para o servidor
         out.println(jsonRequisicao);
-        // Retorna a resposta do servidor
-        return in.readLine();
+
+        // Lê a resposta do servidor
+        String respostaJson = in.readLine();
+
+        // Log da resposta recebida no terminal do cliente
+        System.out.println("[CLIENTE - RECEBIDO]: " + respostaJson);
+
+        // Retorna a resposta
+        return respostaJson;
+
+        // --- FIM DA MODIFICAÇÃO ---
     }
 
     /**
