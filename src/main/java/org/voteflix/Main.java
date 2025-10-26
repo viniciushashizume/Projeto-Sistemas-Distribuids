@@ -1,5 +1,5 @@
 package org.voteflix;
-import org.voteflix.gui.TelaConexao;
+import org.voteflix.cliente.gui.TelaConexao;
 import javax.swing.SwingUtilities;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or

@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import org.voteflix.gui.TelaConexao;
+import org.voteflix.cliente.gui.TelaConexao;
 
 public class ServicoCliente {
 

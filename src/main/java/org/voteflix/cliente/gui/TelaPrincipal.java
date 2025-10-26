@@ -84,7 +84,7 @@ public class TelaPrincipal extends JFrame {
 
             if ("200".equals(status)) {
                 JOptionPane.showMessageDialog(this, "Conta excluída com sucesso.", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-                // O logout já é tratado no finally
+                desconectarEVoltarParaLogin();
             } else {
                 JOptionPane.showMessageDialog(this, "Erro ao excluir a conta. Status: " + status, "Erro", JOptionPane.ERROR_MESSAGE);
             }
