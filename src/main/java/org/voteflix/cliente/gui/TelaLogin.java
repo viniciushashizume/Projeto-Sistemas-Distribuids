@@ -84,8 +84,8 @@ public class TelaLogin extends JFrame {
                 abrirTelaPrincipal(token);
             } else {
                 String mensagemErro = "Erro ao fazer login. Status: " + status;
-                if ("401".equals(status)) mensagemErro = "Credenciais inválidas.";
-                if ("404".equals(status)) mensagemErro = "Usuário não encontrado.";
+                if ("401".equals(status)) mensagemErro = "Usuário ou senha inválidos.";
+                //if ("404".equals(status)) mensagemErro = "Usuário não encontrado.";
                 if ("500".equals(status)) mensagemErro = "Erro interno no servidor.";
                 JOptionPane.showMessageDialog(this, mensagemErro, "Erro de Login", JOptionPane.ERROR_MESSAGE);
             }
