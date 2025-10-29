@@ -2,6 +2,7 @@ package org.voteflix.cliente.gui;
 
 import org.voteflix.cliente.servico.ServicoCliente;
 import org.json.JSONObject;
+import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,6 +15,7 @@ public class TelaEditarUsuario extends JDialog {
     private JPasswordField campoConfirmarNovaSenha;
 
     public TelaEditarUsuario(Frame owner, String token) {
+        // ... (GUI sem alteração)
         super(owner, "Editar Minha Senha", true); // true para ser modal
         this.token = token;
 
@@ -53,6 +55,7 @@ public class TelaEditarUsuario extends JDialog {
     }
 
     private void salvarNovaSenha() {
+        // ... (validação inicial sem alteração)
         String novaSenha = new String(campoNovaSenha.getPassword());
         String confirmarSenha = new String(campoConfirmarNovaSenha.getPassword());
 
@@ -61,7 +64,6 @@ public class TelaEditarUsuario extends JDialog {
             return;
         }
 
-        // Conforme o protocolo, a operação para editar o próprio usuário [cite: 15]
         JSONObject dadosUsuario = new JSONObject();
         dadosUsuario.put("senha", novaSenha);
 
@@ -75,11 +77,18 @@ public class TelaEditarUsuario extends JDialog {
             JSONObject resposta = new JSONObject(respostaJson);
             String status = resposta.getString("status").trim();
 
+            // --- ALTERAÇÃO AQUI ---
+            // "Traduz" o status para a mensagem local do Enum
+            String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
+            // --- FIM DA ALTERAÇÃO ---
+
             if ("200".equals(status)) {
-                JOptionPane.showMessageDialog(this, "Senha alterada com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-                this.dispose(); // Fecha a janela de edição
+                // Exibe a mensagem "traduzida"
+                JOptionPane.showMessageDialog(this, mensagemTraduzida, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                this.dispose();
             } else {
-                JOptionPane.showMessageDialog(this, "Não foi possível alterar a senha. Status: " + status, "Erro", JOptionPane.ERROR_MESSAGE);
+                // Exibe a mensagem de erro "traduzida"
+                JOptionPane.showMessageDialog(this, mensagemTraduzida, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Erro de comunicação: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);

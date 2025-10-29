@@ -2,6 +2,7 @@ package org.voteflix.cliente.gui;
 
 import org.voteflix.cliente.servico.ServicoCliente;
 import org.json.JSONObject;
+import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,6 +14,7 @@ public class TelaLogin extends JFrame {
     private JPasswordField campoSenha;
 
     public TelaLogin() {
+        // ... (GUI sem alteração)
         super("VoteFlix - Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 250);
@@ -77,17 +79,19 @@ public class TelaLogin extends JFrame {
             JSONObject resposta = new JSONObject(respostaJson);
 
             String status = resposta.getString("status").trim();
+            // --- ALTERAÇÃO AQUI ---
+            // "Traduz" o status para a mensagem local do Enum
+            String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
+            // --- FIM DA ALTERAÇÃO ---
 
             if ("200".equals(status)) {
                 String token = resposta.getString("token");
-                JOptionPane.showMessageDialog(this, "Login realizado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                // Exibe a mensagem "traduzida"
+                JOptionPane.showMessageDialog(this, mensagemTraduzida, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 abrirTelaPrincipal(token);
             } else {
-                String mensagemErro = "Erro ao fazer login. Status: " + status;
-                if ("401".equals(status)) mensagemErro = "Usuário ou senha inválidos.";
-                //if ("404".equals(status)) mensagemErro = "Usuário não encontrado.";
-                if ("500".equals(status)) mensagemErro = "Erro interno no servidor.";
-                JOptionPane.showMessageDialog(this, mensagemErro, "Erro de Login", JOptionPane.ERROR_MESSAGE);
+                // Exibe a mensagem de erro "traduzida"
+                JOptionPane.showMessageDialog(this, mensagemTraduzida, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "Erro de comunicação com o servidor: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
@@ -97,12 +101,14 @@ public class TelaLogin extends JFrame {
     }
 
     private void abrirTelaCadastro() {
+        // ... (sem alterações)
         this.dispose();
         TelaCadastro telaCadastro = new TelaCadastro();
         telaCadastro.setVisible(true);
     }
 
     private void abrirTelaPrincipal(String token) {
+        // ... (sem alterações)
         this.dispose();
         TelaPrincipal telaPrincipal = new TelaPrincipal(token);
         telaPrincipal.setVisible(true);

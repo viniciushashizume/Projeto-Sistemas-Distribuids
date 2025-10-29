@@ -2,6 +2,8 @@ package org.voteflix.cliente.gui;
 
 import org.json.JSONObject;
 import org.voteflix.cliente.servico.ServicoCliente;
+import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
@@ -13,6 +15,7 @@ public class TelaCadastro extends JFrame {
     private JPasswordField campoConfirmarSenha;
 
     public TelaCadastro() {
+        // ... (GUI sem alteração)
         super("VoteFlix - Cadastro de Usuário");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 300);
@@ -66,6 +69,7 @@ public class TelaCadastro extends JFrame {
     }
 
     private void realizarCadastro() {
+        // ... (validação inicial sem alteração)
         String nome = campoUsuario.getText();
         String senha = new String(campoSenha.getPassword());
         String confirmarSenha = new String(campoConfirmarSenha.getPassword());
@@ -92,14 +96,18 @@ public class TelaCadastro extends JFrame {
             JSONObject resposta = new JSONObject(respostaJson);
             String status = resposta.getString("status").trim();
 
+            // --- ALTERAÇÃO AQUI ---
+            // "Traduz" o status para a mensagem local do Enum
+            String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
+            // --- FIM DA ALTERAÇÃO ---
+
             if ("201".equals(status)) {
-                JOptionPane.showMessageDialog(this, "Usuário cadastrado com sucesso! Você já pode fazer login.", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                // Exibe a mensagem "traduzida"
+                JOptionPane.showMessageDialog(this, mensagemTraduzida, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 voltarParaLogin();
             } else {
-                String mensagemErro = "Erro ao cadastrar. Status: " + status;
-                if ("409".equals(status)) mensagemErro = "O nome de usuário já existe.";
-                if ("422".equals(status)) mensagemErro = "Dados inválidos. Usuário e senha devem ter de 3 a 20 caracteres.";
-                JOptionPane.showMessageDialog(this, mensagemErro, "Erro de Cadastro", JOptionPane.ERROR_MESSAGE);
+                // Exibe a mensagem de erro "traduzida"
+                JOptionPane.showMessageDialog(this, mensagemTraduzida, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "Erro de comunicação com o servidor: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
@@ -109,6 +117,7 @@ public class TelaCadastro extends JFrame {
     }
 
     private void voltarParaLogin() {
+        // ... (sem alterações)
         this.dispose();
         TelaLogin telaLogin = new TelaLogin();
         telaLogin.setVisible(true);

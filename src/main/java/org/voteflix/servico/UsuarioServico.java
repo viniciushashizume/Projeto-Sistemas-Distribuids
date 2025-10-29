@@ -5,6 +5,7 @@ import org.voteflix.bd.UsuarioBD;
 import org.voteflix.model.Usuario;
 import org.voteflix.servidor.Servidor;
 import org.voteflix.util.JwtUtil;
+import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
 
 import java.sql.SQLException;
 
@@ -16,7 +17,6 @@ public class UsuarioServico {
         this.usuarioBD = new UsuarioBD();
     }
 
-    // ... (métodos criarUsuario, realizarLogout, editarProprioUsuario, excluirProprioUsuario existentes)
     public JSONObject realizarLogin(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
@@ -26,33 +26,27 @@ public class UsuarioServico {
             Usuario usuario = usuarioBD.buscarUsuarioPorNome(nomeUsuario);
 
             if (usuario == null) {
-                resposta.put("status", "404"); // Usuário não encontrado
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
                 return resposta;
             }
 
-            // <-- INÍCIO DA ALTERAÇÃO -->
-            // Verifica se o usuário já está na lista de usuários ativos
             if (Servidor.isUsuarioAtivo(usuario.getNome())) {
-                resposta.put("status", "409"); // Conflito
-                //resposta.put("mensagem", "Este usuário já está logado em outro dispositivo.");
+                ProtocoloMensagem.ERRO_RECURSO_JA_EXISTE.aplicar(resposta); // 409
                 return resposta;
             }
-            // <-- FIM DA ALTERAÇÃO -->
 
             if (senha.equals(usuario.getSenha())) {
                 String token = JwtUtil.gerarToken(usuario);
-                resposta.put("status", "200"); // Sucesso
+                ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
                 resposta.put("token", token);
-                // Adiciona usuário à lista de ativos
                 Servidor.adicionarUsuarioAtivo(usuario.getNome());
             } else {
-                resposta.put("status", "401"); // Credenciais inválidas
+                ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
             }
         } catch (SQLException e) {
             System.err.println("Erro de banco de dados no login: " + e.getMessage());
             e.printStackTrace();
-            resposta.put("status", "500");
-           // resposta.put("mensagem", "Erro de banco de dados.");
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
         }
         return resposta;
     }
@@ -65,12 +59,12 @@ public class UsuarioServico {
             String senha = dadosUsuario.getString("senha");
 
             if (nome.length() < 3 || nome.length() > 20 || senha.length() < 3 || senha.length() > 20) {
-                resposta.put("status", "422");
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
                 return resposta;
             }
 
             if (usuarioBD.buscarUsuarioPorNome(nome) != null) {
-                resposta.put("status", "409"); // Conflito, usuário já existe
+                ProtocoloMensagem.ERRO_RECURSO_JA_EXISTE.aplicar(resposta); // 409
                 return resposta;
             }
 
@@ -78,16 +72,14 @@ public class UsuarioServico {
             boolean sucesso = usuarioBD.adicionarUsuario(novoUsuario);
 
             if (sucesso) {
-                resposta.put("status", "201"); // Criado
+                ProtocoloMensagem.SUCESSO_RECURSO_CADASTRADO.aplicar(resposta); // 201
             } else {
-                resposta.put("status", "500");
-               // resposta.put("mensagem", "Não foi possível adicionar o usuário.");
+                ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
             }
         } catch (SQLException e) {
             System.err.println("Erro de banco de dados ao criar usuário: " + e.getMessage());
             e.printStackTrace();
-            resposta.put("status", "500");
-            //resposta.put("mensagem", "Erro ao acessar o banco de dados: " + e.getMessage());
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
         }
         return resposta;
     }
@@ -97,15 +89,10 @@ public class UsuarioServico {
         try {
             String token = requisicao.getString("token");
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
-            // Remove o usuário da lista de ativos
             Servidor.removerUsuarioAtivo(nomeUsuario);
-            resposta.put("status", "200");
-            //resposta.put("mensagem", "Logout realizado com sucesso.");
+            ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
         } catch (Exception e) {
-            // Mesmo que o token seja inválido, o cliente já se desconectou.
-            // Apenas registramos o fato e retornamos sucesso.
-            resposta.put("status", "200");
-            //resposta.put("mensagem", "Sessão finalizada.");
+            ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
         }
         return resposta;
     }
@@ -114,37 +101,31 @@ public class UsuarioServico {
         JSONObject resposta = new JSONObject();
         try {
             String token = requisicao.getString("token");
-            int usuarioId = JwtUtil.getIdFromToken(token); // Usa ID para atualizações seguras
+            int usuarioId = JwtUtil.getIdFromToken(token);
 
             JSONObject dadosUsuario = requisicao.getJSONObject("usuario");
             String novaSenha = dadosUsuario.getString("senha");
 
             if (novaSenha.length() < 3 || novaSenha.length() > 20) {
-                resposta.put("status", "422"); // Unprocessable Entity
-                //resposta.put("mensagem", "Senha deve ter entre 3 e 20 caracteres.");
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
                 return resposta;
             }
 
             boolean sucesso = usuarioBD.atualizarSenha(usuarioId, novaSenha);
 
             if (sucesso) {
-                resposta.put("status", "200"); // OK
-                //resposta.put("mensagem", "Senha alterada com sucesso.");
+                ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
             } else {
-                // Isso pode acontecer se o ID do usuário no token não existir mais no BD
-                resposta.put("status", "404");
-                //resposta.put("mensagem", "Usuário não encontrado para atualização.");
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
             }
         } catch (SQLException e) {
             System.err.println("Erro de banco de dados ao editar usuário: " + e.getMessage());
             e.printStackTrace();
-            resposta.put("status", "500");
-            //resposta.put("mensagem", "Erro ao acessar o banco de dados.");
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
         } catch (Exception e) {
             System.err.println("Erro ao processar token ou requisição: " + e.getMessage());
             e.printStackTrace();
-            resposta.put("status", "401"); // Unauthorized ou token inválido
-            //resposta.put("mensagem", "Token inválido ou requisição malformada.");
+            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
         }
         return resposta;
     }
@@ -156,29 +137,22 @@ public class UsuarioServico {
             int usuarioId = JwtUtil.getIdFromToken(token);
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
 
-            // Primeiro, remove da lista de ativos para a GUI ser atualizada
             Servidor.removerUsuarioAtivo(nomeUsuario);
-
-            // Depois, exclui do banco de dados
             boolean sucesso = usuarioBD.excluirUsuario(usuarioId);
 
             if (sucesso) {
-                resposta.put("status", "200");
-                //resposta.put("mensagem", "Conta excluída com sucesso.");
+                ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
             } else {
-                resposta.put("status", "404");
-                //resposta.put("mensagem", "Usuário não encontrado para exclusão.");
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
             }
         } catch (SQLException e) {
             System.err.println("Erro de banco de dados ao excluir usuário: " + e.getMessage());
             e.printStackTrace();
-            resposta.put("status", "500");
-            //resposta.put("mensagem", "Erro ao acessar o banco de dados.");
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
         } catch (Exception e) {
             System.err.println("Erro ao processar token para exclusão: " + e.getMessage());
             e.printStackTrace();
-            resposta.put("status", "401");
-            //resposta.put("mensagem", "Token inválido ou requisição malformada.");
+            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
         }
         return resposta;
     }
@@ -192,30 +166,20 @@ public class UsuarioServico {
             Usuario usuario = usuarioBD.buscarUsuarioPorId(usuarioId);
 
             if (usuario != null) {
-                //JSONObject dadosUsuario = new JSONObject();
-                //dadosUsuario.put("nome", usuario.getNome());
-                //dadosUsuario.put("senha", usuario.getSenha());
-                resposta.put("status", "200");
+                ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
                 resposta.put("usuario", usuario.getNome());
             } else {
-                resposta.put("status", "404");
-                //resposta.put("mensagem", "Usuário não encontrado.");
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
             }
         } catch (SQLException e) {
             System.err.println("Erro de banco de dados ao buscar usuário: " + e.getMessage());
             e.printStackTrace();
-            resposta.put("status", "500");
-            //resposta.put("mensagem", "Erro ao acessar o banco de dados.");
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
         } catch (Exception e) {
             System.err.println("Erro ao processar token ou requisição: " + e.getMessage());
             e.printStackTrace();
-            resposta.put("status", "401"); // Unauthorized ou token inválido
-            //resposta.put("mensagem", "Token inválido ou requisição malformada.");
+            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
         }
         return resposta;
     }
 }
-
-
-
-

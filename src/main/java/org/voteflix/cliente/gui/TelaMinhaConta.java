@@ -2,6 +2,7 @@ package org.voteflix.cliente.gui;
 
 import org.json.JSONObject;
 import org.voteflix.cliente.servico.ServicoCliente;
+import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,6 +13,7 @@ public class TelaMinhaConta extends JDialog {
     private final String token;
 
     public TelaMinhaConta(Frame owner, String token) {
+        // ... (GUI sem alteração)
         super(owner, "Minhas Informações", true);
         this.token = token;
 
@@ -50,6 +52,7 @@ public class TelaMinhaConta extends JDialog {
         painelBotao.add(botaoFechar);
         add(painelBotao, BorderLayout.SOUTH);
 
+
         carregarInformacoesUsuario(campoUsuario, campoSenha);
     }
 
@@ -63,12 +66,18 @@ public class TelaMinhaConta extends JDialog {
             JSONObject resposta = new JSONObject(respostaJson);
             String status = resposta.getString("status").trim();
 
+            // --- ALTERAÇÃO AQUI ---
+            // "Traduz" o status para a mensagem local do Enum
+            String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
+            // --- FIM DA ALTERAÇÃO ---
+
             if ("200".equals(status)) {
-                String nomeUsuario = resposta.getString("usuario"); // Alteração aqui
+                String nomeUsuario = resposta.getString("usuario");
                 campoUsuario.setText(nomeUsuario);
                 //campoSenha.setText(usuario.getString("senha"));
             } else {
-                JOptionPane.showMessageDialog(this, "Erro ao buscar informações do usuário. Status: " + status, "Erro", JOptionPane.ERROR_MESSAGE);
+                // Exibe a mensagem de erro "traduzida"
+                JOptionPane.showMessageDialog(this, mensagemTraduzida, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
                 dispose();
             }
         } catch (IOException e) {

@@ -2,6 +2,7 @@ package org.voteflix.cliente.gui;
 
 import org.voteflix.cliente.servico.ServicoCliente;
 import org.json.JSONObject;
+import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,9 +12,10 @@ import java.awt.event.WindowEvent;
 
 public class TelaPrincipal extends JFrame {
 
-    private String token; // Armazena o token do usuário logado
+    private String token;
 
     public TelaPrincipal(String token) {
+        // ... (construtor e GUI sem alteração)
         super("VoteFlix - Painel do Usuário");
         this.token = token;
 
@@ -54,11 +56,13 @@ public class TelaPrincipal extends JFrame {
     }
 
     private void abrirTelaEdicao() {
+        // ... (sem alterações)
         TelaEditarUsuario telaEditar = new TelaEditarUsuario(this, token);
         telaEditar.setVisible(true);
     }
 
     private void confirmarExclusao() {
+        // ... (sem alterações)
         int resposta = JOptionPane.showConfirmDialog(
                 this,
                 "Tem certeza que deseja excluir sua conta? Esta ação é irreversível.",
@@ -82,20 +86,27 @@ public class TelaPrincipal extends JFrame {
             JSONObject resposta = new JSONObject(respostaJson);
             String status = resposta.getString("status").trim();
 
+            // --- ALTERAÇÃO AQUI ---
+            // "Traduz" o status para a mensagem local do Enum
+            String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
+            // --- FIM DA ALTERAÇÃO ---
+
             if ("200".equals(status)) {
-                JOptionPane.showMessageDialog(this, "Conta excluída com sucesso.", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                // Exibe a mensagem "traduzida"
+                JOptionPane.showMessageDialog(this, mensagemTraduzida, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 desconectarEVoltarParaLogin();
             } else {
-                JOptionPane.showMessageDialog(this, "Erro ao excluir a conta. Status: " + status, "Erro", JOptionPane.ERROR_MESSAGE);
+                // Exibe a mensagem de erro "traduzida"
+                JOptionPane.showMessageDialog(this, mensagemTraduzida, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Erro de comunicação: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
-        } finally {
-            desconectarEFechar(); // Garante a desconexão
+            desconectarEVoltarParaLogin();
         }
     }
 
     private void realizarLogout() {
+        // ... (sem alterações)
         JSONObject requisicao = new JSONObject();
         requisicao.put("operacao", "LOGOUT");
         requisicao.put("token", this.token);
@@ -110,11 +121,8 @@ public class TelaPrincipal extends JFrame {
         }
     }
 
-    /**
-     * Envia a notificação de logout, desconecta e encerra a aplicação.
-     * Chamado quando o usuário fecha a janela pelo botão 'X'.
-     */
     private void desconectarEFechar() {
+        // ... (sem alterações)
         JSONObject requisicao = new JSONObject();
         requisicao.put("operacao", "LOGOUT");
         requisicao.put("token", this.token);
@@ -136,10 +144,8 @@ public class TelaPrincipal extends JFrame {
         }
     }
 
-    /**
-     * Desconecta e abre a tela de login.
-     */
     private void desconectarEVoltarParaLogin() {
+        // ... (sem alterações)
         try {
             ServicoCliente.getInstancia().desconectar();
         } catch (IOException e) {
@@ -151,7 +157,7 @@ public class TelaPrincipal extends JFrame {
     }
 
     private void abrirTelaMinhaConta() {
-
+        // ... (sem alterações)
         TelaMinhaConta telaMinhaConta = new TelaMinhaConta(this, token);
         telaMinhaConta.setVisible(true);
     }
