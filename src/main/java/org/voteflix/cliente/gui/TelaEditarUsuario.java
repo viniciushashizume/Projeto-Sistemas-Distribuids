@@ -12,7 +12,7 @@ public class TelaEditarUsuario extends JDialog {
 
     private String token;
     private JPasswordField campoNovaSenha;
-    private JPasswordField campoConfirmarNovaSenha;
+    // private JPasswordField campoConfirmarNovaSenha; // CAMPO REMOVIDO
 
     public TelaEditarUsuario(Frame owner, String token) {
         // ... (GUI sem alteração)
@@ -35,6 +35,8 @@ public class TelaEditarUsuario extends JDialog {
         campoNovaSenha = new JPasswordField(20);
         painel.add(campoNovaSenha, gbc);
 
+        // --- SEÇÃO REMOVIDA ---
+        /*
         gbc.gridx = 0;
         gbc.gridy = 1;
         painel.add(new JLabel("Confirmar Nova Senha:"), gbc);
@@ -42,10 +44,12 @@ public class TelaEditarUsuario extends JDialog {
         gbc.gridx = 1;
         campoConfirmarNovaSenha = new JPasswordField(20);
         painel.add(campoConfirmarNovaSenha, gbc);
+        */
+        // --- FIM DA SEÇÃO REMOVIDA ---
 
         JButton botaoSalvar = new JButton("Salvar Alterações");
         gbc.gridx = 1;
-        gbc.gridy = 2;
+        gbc.gridy = 1; // Posição Y atualizada de 2 para 1
         gbc.anchor = GridBagConstraints.EAST;
         painel.add(botaoSalvar, gbc);
 
@@ -57,12 +61,14 @@ public class TelaEditarUsuario extends JDialog {
     private void salvarNovaSenha() {
         // ... (validação inicial sem alteração)
         String novaSenha = new String(campoNovaSenha.getPassword());
-        String confirmarSenha = new String(campoConfirmarNovaSenha.getPassword());
+        // String confirmarSenha = new String(campoConfirmarNovaSenha.getPassword()); // LÓGICA REMOVIDA
 
-        if (novaSenha.isEmpty() || !novaSenha.equals(confirmarSenha)) {
-            JOptionPane.showMessageDialog(this, "As senhas não coincidem ou estão em branco.", "Erro", JOptionPane.ERROR_MESSAGE);
+
+        /*if (novaSenha.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "A nova senha não pode estar em branco.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
-        }
+        }*/
+
 
         JSONObject dadosUsuario = new JSONObject();
         dadosUsuario.put("senha", novaSenha);
@@ -76,11 +82,7 @@ public class TelaEditarUsuario extends JDialog {
             String respostaJson = ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
             JSONObject resposta = new JSONObject(respostaJson);
             String status = resposta.getString("status").trim();
-
-            // --- ALTERAÇÃO AQUI ---
-            // "Traduz" o status para a mensagem local do Enum
             String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
-            // --- FIM DA ALTERAÇÃO ---
 
             if ("200".equals(status)) {
                 // Exibe a mensagem "traduzida"

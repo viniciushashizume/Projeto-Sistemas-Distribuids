@@ -1,7 +1,7 @@
 package org.voteflix.servidor;
 
 import org.json.JSONObject;
-import org.voteflix.servico.UsuarioServico;
+import org.voteflix.servidor.servico.UsuarioServico;
 import org.voteflix.servidor.gui.TelaServidor;
 import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
 

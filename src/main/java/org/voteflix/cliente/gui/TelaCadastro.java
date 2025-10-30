@@ -12,7 +12,7 @@ public class TelaCadastro extends JFrame {
 
     private JTextField campoUsuario;
     private JPasswordField campoSenha;
-    private JPasswordField campoConfirmarSenha;
+    // private JPasswordField campoConfirmarSenha; // CAMPO REMOVIDO
 
     public TelaCadastro() {
         // ... (GUI sem alteração)
@@ -42,6 +42,8 @@ public class TelaCadastro extends JFrame {
         campoSenha = new JPasswordField(20);
         painel.add(campoSenha, gbc);
 
+        // --- SEÇÃO REMOVIDA ---
+        /*
         gbc.gridx = 0;
         gbc.gridy = 2;
         painel.add(new JLabel("Confirmar Senha:"), gbc);
@@ -49,6 +51,8 @@ public class TelaCadastro extends JFrame {
         gbc.gridx = 1;
         campoConfirmarSenha = new JPasswordField(20);
         painel.add(campoConfirmarSenha, gbc);
+        */
+        // --- FIM DA SEÇÃO REMOVIDA ---
 
         // Painel de botões
         JPanel painelBotoes = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -58,7 +62,7 @@ public class TelaCadastro extends JFrame {
         painelBotoes.add(botaoVoltar);
 
         gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = 2; // Posição Y atualizada de 3 para 2
         gbc.gridwidth = 2;
         painel.add(painelBotoes, gbc);
 
@@ -72,16 +76,21 @@ public class TelaCadastro extends JFrame {
         // ... (validação inicial sem alteração)
         String nome = campoUsuario.getText();
         String senha = new String(campoSenha.getPassword());
-        String confirmarSenha = new String(campoConfirmarSenha.getPassword());
+        // String confirmarSenha = new String(campoConfirmarSenha.getPassword()); // LÓGICA REMOVIDA
 
         if (nome.isEmpty() || senha.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Usuário e senha são obrigatórios.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
+
+        // --- VALIDAÇÃO REMOVIDA ---
+        /*
         if (!senha.equals(confirmarSenha)) {
             JOptionPane.showMessageDialog(this, "As senhas não coincidem.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        */
+        // --- FIM DA VALIDAÇÃO REMOVIDA ---
 
         JSONObject dadosUsuario = new JSONObject();
         dadosUsuario.put("nome", nome);

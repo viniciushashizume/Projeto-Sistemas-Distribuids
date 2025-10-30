@@ -64,10 +64,10 @@ public class TelaLogin extends JFrame {
         String usuario = campoUsuario.getText();
         String senha = new String(campoSenha.getPassword());
 
-        if (usuario.isEmpty() || senha.isEmpty()) {
+        /*if (usuario.isEmpty() || senha.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Usuário e senha são obrigatórios.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
-        }
+        }*/
 
         JSONObject requisicao = new JSONObject();
         requisicao.put("operacao", "LOGIN");

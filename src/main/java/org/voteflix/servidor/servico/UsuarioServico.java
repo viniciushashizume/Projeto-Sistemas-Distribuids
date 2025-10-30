@@ -1,4 +1,4 @@
-package org.voteflix.servico;
+package org.voteflix.servidor.servico;
 
 import org.json.JSONObject;
 import org.voteflix.bd.UsuarioBD;
@@ -75,7 +75,7 @@ public class UsuarioServico {
             String senha = dadosUsuario.getString("senha");
 
             if (nome.length() < 3 || nome.length() > 20 || senha.length() < 3 || senha.length() > 20) {
-                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+                ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
                 return resposta;
             }
 
@@ -147,8 +147,13 @@ public class UsuarioServico {
             JSONObject dadosUsuario = requisicao.getJSONObject("usuario");
             String novaSenha = dadosUsuario.getString("senha");
 
-            if (novaSenha.length() < 3 || novaSenha.length() > 20) {
+            if (novaSenha.isEmpty()) {
                 ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+                return resposta;
+            }
+
+            if (novaSenha.length() < 3 || novaSenha.length() > 20) {
+                ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
                 return resposta;
             }
 
