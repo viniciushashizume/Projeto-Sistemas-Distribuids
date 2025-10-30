@@ -5,7 +5,8 @@ import org.voteflix.bd.UsuarioBD;
 import org.voteflix.model.Usuario;
 import org.voteflix.servidor.Servidor;
 import org.voteflix.util.JwtUtil;
-import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
+import org.voteflix.util.ProtocoloMensagem;
+import org.json.JSONException;
 
 import java.sql.SQLException;
 
@@ -24,26 +25,41 @@ public class UsuarioServico {
             String senha = requisicao.getString("senha");
 
             Usuario usuario = usuarioBD.buscarUsuarioPorNome(nomeUsuario);
-
+            if (nomeUsuario.length() < 3 || nomeUsuario.length() > 20 || senha.length() < 3 || senha.length() > 20) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+                return resposta;
+            }
+            // 1. Usuário não encontrado
+            // O código 404 não está no protocolo de LOGIN. Usando 403.
             if (usuario == null) {
-                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
             }
 
+            // 2. Usuário já logado
+            // O código 409 não está no protocolo de LOGIN. Usando 403.
             if (Servidor.isUsuarioAtivo(usuario.getNome())) {
-                ProtocoloMensagem.ERRO_RECURSO_JA_EXISTE.aplicar(resposta); // 409
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
             }
 
+            // 3. Senha correta
             if (senha.equals(usuario.getSenha())) {
                 String token = JwtUtil.gerarToken(usuario);
                 ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
                 resposta.put("token", token);
                 Servidor.adicionarUsuarioAtivo(usuario.getNome());
             } else {
-                ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
+                // 4. Senha incorreta
+                // O código 401 não está no protocolo de LOGIN. Usando 403.
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 401
             }
+        } catch (JSONException e) {
+            // 5. Chaves faltantes (Protocolo Requisições.csv: 422) - CORRETO
+            System.err.println("Erro de JSON no login: " + e.getMessage());
+            ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
         } catch (SQLException e) {
+            // 6. Erro de banco de dados (Protocolo Requisições.csv: 500) - CORRETO
             System.err.println("Erro de banco de dados no login: " + e.getMessage());
             e.printStackTrace();
             ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
@@ -87,14 +103,39 @@ public class UsuarioServico {
     public JSONObject realizarLogout(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
+            // 1. Tratamento do Erro 422 (Chaves faltantes)
+            // Se a chave "token" não existir, lança JSONException
             String token = requisicao.getString("token");
+
+            // 2. Tratamento do Erro 401 (Token inválido)
+            // Se o token for inválido (expirado, assinatura, etc.), lança Exceção
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
+
+            // 3. Tratamento do Erro 404 (Recurso inexistente)
+            // O token é válido (não caiu no 401), mas o usuário não está na lista de ativos.
+            if (!Servidor.isUsuarioAtivo(nomeUsuario)) {
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
+                return resposta;
+            }
+
+            // 4. Sucesso (200)
+            // Remove o usuário da lista de ativos.
+            // (Se isto falhar com RuntimeException, o ClienteHandler tratará como 500)
             Servidor.removerUsuarioAtivo(nomeUsuario);
             ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
+
+        } catch (JSONException e) {
+            // Erro 422: A chave "token" não foi encontrada na requisição
+            System.err.println("Erro de JSON no logout (chave 'token' faltante?): " + e.getMessage());
+            ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
         } catch (Exception e) {
-            ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
+            // Erro 401: O token é inválido (pega exceções do JwtUtil.getNomeFromToken)
+            System.err.println("Erro de token no logout (token inválido?): " + e.getMessage());
+            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
         }
         return resposta;
+        // Erro 500: Será tratado pelo catch(Exception e) no ClienteHandler.java
+        // Erro 400: Já é tratado pelo switch-default no ClienteHandler.java
     }
 
     public JSONObject editarProprioUsuario(JSONObject requisicao) {
