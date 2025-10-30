@@ -15,7 +15,6 @@ public class TelaCadastro extends JFrame {
     // private JPasswordField campoConfirmarSenha; // CAMPO REMOVIDO
 
     public TelaCadastro() {
-        // ... (GUI sem alteração)
         super("VoteFlix - Cadastro de Usuário");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 300);
@@ -41,8 +40,6 @@ public class TelaCadastro extends JFrame {
         gbc.gridx = 1;
         campoSenha = new JPasswordField(20);
         painel.add(campoSenha, gbc);
-
-        // --- SEÇÃO REMOVIDA ---
         /*
         gbc.gridx = 0;
         gbc.gridy = 2;
@@ -52,7 +49,7 @@ public class TelaCadastro extends JFrame {
         campoConfirmarSenha = new JPasswordField(20);
         painel.add(campoConfirmarSenha, gbc);
         */
-        // --- FIM DA SEÇÃO REMOVIDA ---
+
 
         // Painel de botões
         JPanel painelBotoes = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -62,7 +59,7 @@ public class TelaCadastro extends JFrame {
         painelBotoes.add(botaoVoltar);
 
         gbc.gridx = 0;
-        gbc.gridy = 2; // Posição Y atualizada de 3 para 2
+        gbc.gridy = 2;
         gbc.gridwidth = 2;
         painel.add(painelBotoes, gbc);
 
@@ -73,7 +70,6 @@ public class TelaCadastro extends JFrame {
     }
 
     private void realizarCadastro() {
-        // ... (validação inicial sem alteração)
         String nome = campoUsuario.getText();
         String senha = new String(campoSenha.getPassword());
         // String confirmarSenha = new String(campoConfirmarSenha.getPassword()); // LÓGICA REMOVIDA
@@ -83,14 +79,12 @@ public class TelaCadastro extends JFrame {
             return;
         }
 
-        // --- VALIDAÇÃO REMOVIDA ---
         /*
         if (!senha.equals(confirmarSenha)) {
             JOptionPane.showMessageDialog(this, "As senhas não coincidem.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
         */
-        // --- FIM DA VALIDAÇÃO REMOVIDA ---
 
         JSONObject dadosUsuario = new JSONObject();
         dadosUsuario.put("nome", nome);
@@ -105,17 +99,11 @@ public class TelaCadastro extends JFrame {
             JSONObject resposta = new JSONObject(respostaJson);
             String status = resposta.getString("status").trim();
 
-            // --- ALTERAÇÃO AQUI ---
-            // "Traduz" o status para a mensagem local do Enum
             String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
-            // --- FIM DA ALTERAÇÃO ---
-
             if ("201".equals(status)) {
-                // Exibe a mensagem "traduzida"
                 JOptionPane.showMessageDialog(this, mensagemTraduzida, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 voltarParaLogin();
             } else {
-                // Exibe a mensagem de erro "traduzida"
                 JOptionPane.showMessageDialog(this, mensagemTraduzida, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException ex) {
@@ -126,7 +114,6 @@ public class TelaCadastro extends JFrame {
     }
 
     private void voltarParaLogin() {
-        // ... (sem alterações)
         this.dispose();
         TelaLogin telaLogin = new TelaLogin();
         telaLogin.setVisible(true);

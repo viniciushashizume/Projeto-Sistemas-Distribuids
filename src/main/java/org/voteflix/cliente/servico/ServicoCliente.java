@@ -17,7 +17,6 @@ public class ServicoCliente {
     // Construtor privado para implementar o padrão Singleton
     private ServicoCliente() {}
 
-    // Padrão Singleton para garantir uma única instância
     public static synchronized ServicoCliente getInstancia() {
         if (instancia == null) {
             instancia = new ServicoCliente();

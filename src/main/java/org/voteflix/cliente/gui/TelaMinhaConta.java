@@ -13,7 +13,6 @@ public class TelaMinhaConta extends JDialog {
     private final String token;
 
     public TelaMinhaConta(Frame owner, String token) {
-        // ... (GUI sem alteração)
         super(owner, "Minhas Informações", true);
         this.token = token;
 
@@ -66,10 +65,8 @@ public class TelaMinhaConta extends JDialog {
             JSONObject resposta = new JSONObject(respostaJson);
             String status = resposta.getString("status").trim();
 
-            // --- ALTERAÇÃO AQUI ---
-            // "Traduz" o status para a mensagem local do Enum
             String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
-            // --- FIM DA ALTERAÇÃO ---
+
 
             if ("200".equals(status)) {
                 String nomeUsuario = resposta.getString("usuario");

@@ -12,7 +12,7 @@ public class TelaEditarUsuario extends JDialog {
 
     private String token;
     private JPasswordField campoNovaSenha;
-    // private JPasswordField campoConfirmarNovaSenha; // CAMPO REMOVIDO
+    // private JPasswordField campoConfirmarNovaSenha;
 
     public TelaEditarUsuario(Frame owner, String token) {
         // ... (GUI sem alteração)
@@ -35,7 +35,6 @@ public class TelaEditarUsuario extends JDialog {
         campoNovaSenha = new JPasswordField(20);
         painel.add(campoNovaSenha, gbc);
 
-        // --- SEÇÃO REMOVIDA ---
         /*
         gbc.gridx = 0;
         gbc.gridy = 1;
@@ -45,11 +44,10 @@ public class TelaEditarUsuario extends JDialog {
         campoConfirmarNovaSenha = new JPasswordField(20);
         painel.add(campoConfirmarNovaSenha, gbc);
         */
-        // --- FIM DA SEÇÃO REMOVIDA ---
 
         JButton botaoSalvar = new JButton("Salvar Alterações");
         gbc.gridx = 1;
-        gbc.gridy = 1; // Posição Y atualizada de 2 para 1
+        gbc.gridy = 1;
         gbc.anchor = GridBagConstraints.EAST;
         painel.add(botaoSalvar, gbc);
 
@@ -61,7 +59,7 @@ public class TelaEditarUsuario extends JDialog {
     private void salvarNovaSenha() {
         // ... (validação inicial sem alteração)
         String novaSenha = new String(campoNovaSenha.getPassword());
-        // String confirmarSenha = new String(campoConfirmarNovaSenha.getPassword()); // LÓGICA REMOVIDA
+        // String confirmarSenha = new String(campoConfirmarNovaSenha.getPassword()); //
 
 
         /*if (novaSenha.isEmpty()) {

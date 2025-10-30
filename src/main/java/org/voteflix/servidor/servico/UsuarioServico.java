@@ -37,7 +37,6 @@ public class UsuarioServico {
             }
 
             // 2. Usuário já logado
-            // O código 409 não está no protocolo de LOGIN. Usando 403.
             if (Servidor.isUsuarioAtivo(usuario.getNome())) {
                 ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
@@ -51,15 +50,14 @@ public class UsuarioServico {
                 Servidor.adicionarUsuarioAtivo(usuario.getNome());
             } else {
                 // 4. Senha incorreta
-                // O código 401 não está no protocolo de LOGIN. Usando 403.
-                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 401
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
             }
         } catch (JSONException e) {
-            // 5. Chaves faltantes (Protocolo Requisições.csv: 422) - CORRETO
+            // 5. Chaves faltantes
             System.err.println("Erro de JSON no login: " + e.getMessage());
             ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
         } catch (SQLException e) {
-            // 6. Erro de banco de dados (Protocolo Requisições.csv: 500) - CORRETO
+            // 6. Erro de banco de dados
             System.err.println("Erro de banco de dados no login: " + e.getMessage());
             e.printStackTrace();
             ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
@@ -112,7 +110,7 @@ public class UsuarioServico {
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
 
             // 3. Tratamento do Erro 404 (Recurso inexistente)
-            // O token é válido (não caiu no 401), mas o usuário não está na lista de ativos.
+            // O token é válido (não caiu no 401mas o usuário não está na lista de ativos.
             if (!Servidor.isUsuarioAtivo(nomeUsuario)) {
                 ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
                 return resposta;
@@ -120,7 +118,6 @@ public class UsuarioServico {
 
             // 4. Sucesso (200)
             // Remove o usuário da lista de ativos.
-            // (Se isto falhar com RuntimeException, o ClienteHandler tratará como 500)
             Servidor.removerUsuarioAtivo(nomeUsuario);
             ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
 
@@ -134,8 +131,6 @@ public class UsuarioServico {
             ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
         }
         return resposta;
-        // Erro 500: Será tratado pelo catch(Exception e) no ClienteHandler.java
-        // Erro 400: Já é tratado pelo switch-default no ClienteHandler.java
     }
 
     public JSONObject editarProprioUsuario(JSONObject requisicao) {

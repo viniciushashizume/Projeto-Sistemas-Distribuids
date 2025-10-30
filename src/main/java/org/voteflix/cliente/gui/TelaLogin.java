@@ -13,9 +13,7 @@ public class TelaLogin extends JFrame {
     private JTextField campoUsuario;
     private JPasswordField campoSenha;
 
-    public TelaLogin() {
-        // ... (GUI sem alteração)
-        super("VoteFlix - Login");
+    public TelaLogin() {super("VoteFlix - Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 250);
         setLocationRelativeTo(null);
@@ -79,18 +77,14 @@ public class TelaLogin extends JFrame {
             JSONObject resposta = new JSONObject(respostaJson);
 
             String status = resposta.getString("status").trim();
-            // --- ALTERAÇÃO AQUI ---
-            // "Traduz" o status para a mensagem local do Enum
             String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
-            // --- FIM DA ALTERAÇÃO ---
+
 
             if ("200".equals(status)) {
                 String token = resposta.getString("token");
-                // Exibe a mensagem "traduzida"
                 JOptionPane.showMessageDialog(this, mensagemTraduzida, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 abrirTelaPrincipal(token);
             } else {
-                // Exibe a mensagem de erro "traduzida"
                 JOptionPane.showMessageDialog(this, mensagemTraduzida, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException ex) {
@@ -101,14 +95,12 @@ public class TelaLogin extends JFrame {
     }
 
     private void abrirTelaCadastro() {
-        // ... (sem alterações)
         this.dispose();
         TelaCadastro telaCadastro = new TelaCadastro();
         telaCadastro.setVisible(true);
     }
 
     private void abrirTelaPrincipal(String token) {
-        // ... (sem alterações)
         this.dispose();
         TelaPrincipal telaPrincipal = new TelaPrincipal(token);
         telaPrincipal.setVisible(true);
