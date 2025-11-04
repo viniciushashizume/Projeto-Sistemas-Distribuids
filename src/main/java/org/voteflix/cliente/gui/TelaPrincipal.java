@@ -13,11 +13,13 @@ import java.awt.event.WindowEvent;
 public class TelaPrincipal extends JFrame {
 
     private String token;
+    private boolean isAdmin;
 
-    public TelaPrincipal(String token) {
-        // ... (construtor e GUI sem alteração)
+    // --- CONSTRUTOR CORRIGIDO ---
+    public TelaPrincipal(String token, boolean isAdmin) {
         super("VoteFlix - Painel do Usuário");
         this.token = token;
+        this.isAdmin = isAdmin;
 
         // Intercepta o evento de fechamento da janela
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -28,41 +30,88 @@ public class TelaPrincipal extends JFrame {
             }
         });
 
-        setSize(500, 400);
+        // Aumentei a largura para acomodar os botões de admin
+        setSize(700, 400);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        JLabel labelBoasVindas = new JLabel("Bem-vindo ao VoteFlix!", SwingConstants.CENTER);
+        String textoBoasVindas = isAdmin ? "Bem-vindo, Administrador!" : "Bem-vindo ao VoteFlix!";
+        JLabel labelBoasVindas = new JLabel(textoBoasVindas, SwingConstants.CENTER);
         labelBoasVindas.setFont(new Font("Arial", Font.BOLD, 20));
         add(labelBoasVindas, BorderLayout.CENTER);
 
         JPanel painelAcoes = new JPanel(new FlowLayout(FlowLayout.CENTER));
+
+        // --- LÓGICA DE BOTÕES CORRIGIDA ---
+
+        // Botões visíveis para TODOS
+        JButton botaoListarFilmes = new JButton("Ver Filmes");
         JButton botaoMinhaConta = new JButton("Minha Conta");
         JButton botaoEditar = new JButton("Editar Minha Conta");
-        JButton botaoExcluir = new JButton("Excluir Minha Conta");
-        JButton botaoLogout = new JButton("Logout");
+        JButton botaoLogout = new JButton("Logout"); // Movido para o grupo comum
 
+        painelAcoes.add(botaoListarFilmes);
         painelAcoes.add(botaoMinhaConta);
         painelAcoes.add(botaoEditar);
-        painelAcoes.add(botaoExcluir);
-        painelAcoes.add(botaoLogout);
+        painelAcoes.add(botaoLogout); // Adicionado junto com os outros botões comuns
+
+        // Botões específicos de permissão
+        if (isAdmin) {
+            // Botões exclusivos de ADMIN
+            JButton botaoGerenciarFilmes = new JButton("Gerenciar Filmes (Admin)");
+            JButton botaoGerenciarUsuarios = new JButton("Gerenciar Usuários (Admin)");
+            painelAcoes.add(botaoGerenciarFilmes);
+            painelAcoes.add(botaoGerenciarUsuarios);
+
+            // Listeners dos botões de admin
+            botaoGerenciarFilmes.addActionListener(e -> abrirTelaGerenciarFilmes());
+            botaoGerenciarUsuarios.addActionListener(e -> abrirTelaGerenciarUsuarios());
+
+        } else {
+            // Botão "Excluir Minha Conta" é SÓ para usuário comum (Requisito [source 206])
+            JButton botaoExcluir = new JButton("Excluir Minha Conta");
+            painelAcoes.add(botaoExcluir);
+            botaoExcluir.addActionListener(e -> confirmarExclusao());
+        }
 
         add(painelAcoes, BorderLayout.SOUTH);
 
+        // Listeners dos botões comuns
+        botaoListarFilmes.addActionListener(e -> abrirTelaListarFilmes());
         botaoMinhaConta.addActionListener(e -> abrirTelaMinhaConta());
         botaoEditar.addActionListener(e -> abrirTelaEdicao());
-        botaoExcluir.addActionListener(e -> confirmarExclusao());
         botaoLogout.addActionListener(e -> realizarLogout());
+        // Listener de 'botaoExcluir' agora está dentro do 'else'
     }
 
+    // --- FIM DA CORREÇÃO ---
+
+    // --- NOVOS MÉTODOS PARA ABRIR TELAS ---
+    private void abrirTelaListarFilmes() {
+        // Esta tela serve tanto para admin quanto para usuário comum
+        TelaListarFilmes telaFilmes = new TelaListarFilmes(this, token, this.isAdmin, false);
+        telaFilmes.setVisible(true);
+    }
+
+    private void abrirTelaGerenciarFilmes() {
+        // Abre a mesma tela de filmes, mas no modo "Gerenciamento"
+        TelaListarFilmes telaFilmes = new TelaListarFilmes(this, token, this.isAdmin, true);
+        telaFilmes.setVisible(true);
+    }
+
+    private void abrirTelaGerenciarUsuarios() {
+        TelaGerenciarUsuarios telaUsuarios = new TelaGerenciarUsuarios(this, token);
+        telaUsuarios.setVisible(true);
+    }
+    // --- FIM DOS NOVOS MÉTODOS ---
+
+
     private void abrirTelaEdicao() {
-        // ... (sem alterações)
         TelaEditarUsuario telaEditar = new TelaEditarUsuario(this, token);
         telaEditar.setVisible(true);
     }
 
     private void confirmarExclusao() {
-        // ... (sem alterações)
         int resposta = JOptionPane.showConfirmDialog(
                 this,
                 "Tem certeza que deseja excluir sua conta? Esta ação é irreversível.",
@@ -86,17 +135,12 @@ public class TelaPrincipal extends JFrame {
             JSONObject resposta = new JSONObject(respostaJson);
             String status = resposta.getString("status").trim();
 
-            // --- ALTERAÇÃO AQUI ---
-            // "Traduz" o status para a mensagem local do Enum
             String mensagemTraduzida = ProtocoloMensagem.getByStatus(status).getMensagem();
-            // --- FIM DA ALTERAÇÃO ---
 
             if ("200".equals(status)) {
-                // Exibe a mensagem "traduzida"
                 JOptionPane.showMessageDialog(this, mensagemTraduzida, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 desconectarEVoltarParaLogin();
             } else {
-                // Exibe a mensagem de erro "traduzida"
                 JOptionPane.showMessageDialog(this, mensagemTraduzida, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException e) {
@@ -106,7 +150,6 @@ public class TelaPrincipal extends JFrame {
     }
 
     private void realizarLogout() {
-        // ... (sem alterações)
         JSONObject requisicao = new JSONObject();
         requisicao.put("operacao", "LOGOUT");
         requisicao.put("token", this.token);
@@ -122,7 +165,6 @@ public class TelaPrincipal extends JFrame {
     }
 
     private void desconectarEFechar() {
-        // ... (sem alterações)
         JSONObject requisicao = new JSONObject();
         requisicao.put("operacao", "LOGOUT");
         requisicao.put("token", this.token);
@@ -145,7 +187,6 @@ public class TelaPrincipal extends JFrame {
     }
 
     private void desconectarEVoltarParaLogin() {
-        // ... (sem alterações)
         try {
             ServicoCliente.getInstancia().desconectar();
         } catch (IOException e) {
@@ -157,7 +198,6 @@ public class TelaPrincipal extends JFrame {
     }
 
     private void abrirTelaMinhaConta() {
-        // ... (sem alterações)
         TelaMinhaConta telaMinhaConta = new TelaMinhaConta(this, token);
         telaMinhaConta.setVisible(true);
     }

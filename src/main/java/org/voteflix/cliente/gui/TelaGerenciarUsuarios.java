@@ -1,0 +1,153 @@
+package org.voteflix.cliente.gui;
+
+import org.voteflix.cliente.servico.ServicoCliente;
+import org.voteflix.model.UsuarioInfo;
+import org.voteflix.util.ProtocoloMensagem;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import javax.swing.*;
+import java.awt.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TelaGerenciarUsuarios extends JDialog {
+
+    private String token;
+    private JList<UsuarioInfo> listaUsuarios;
+    private DefaultListModel<UsuarioInfo> listModel;
+
+    public TelaGerenciarUsuarios(Frame owner, String token) {
+        super(owner, "Gerenciar Usuários (Admin)", true);
+        this.token = token;
+
+        setSize(500, 400);
+        setLocationRelativeTo(owner);
+        setLayout(new BorderLayout());
+
+        listModel = new DefaultListModel<>();
+        listaUsuarios = new JList<>(listModel);
+        listaUsuarios.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        add(new JScrollPane(listaUsuarios), BorderLayout.CENTER);
+
+        JPanel painelBotoes = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton botaoEditarSenha = new JButton("Editar Senha");
+        JButton botaoExcluir = new JButton("Excluir Usuário");
+        painelBotoes.add(botaoEditarSenha);
+        painelBotoes.add(botaoExcluir);
+        add(painelBotoes, BorderLayout.SOUTH);
+
+        botaoEditarSenha.addActionListener(e -> editarSenhaUsuario());
+        botaoExcluir.addActionListener(e -> excluirUsuario());
+
+        carregarUsuarios();
+    }
+
+    private void carregarUsuarios() {
+        JSONObject requisicao = new JSONObject();
+        requisicao.put("operacao", "LISTAR_USUARIOS");
+        requisicao.put("token", this.token);
+
+        try {
+            String respostaJson = ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
+            JSONObject resposta = new JSONObject(respostaJson);
+            String status = resposta.getString("status").trim();
+
+            if ("200".equals(status)) {
+                listModel.clear();
+                if (resposta.has("usuarios")) {
+                    JSONArray usuariosArray = resposta.getJSONArray("usuarios");
+                    for (int i = 0; i < usuariosArray.length(); i++) {
+                        listModel.addElement(new UsuarioInfo(usuariosArray.getJSONObject(i)));
+                    }
+                }
+            } else {
+                String msgErro = ProtocoloMensagem.getByStatus(status).getMensagem();
+                JOptionPane.showMessageDialog(this, "Erro ao carregar usuários: " + msgErro, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
+                dispose(); // Fecha a tela se não tiver permissão (ex: 403)
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Erro de comunicação: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void editarSenhaUsuario() {
+        UsuarioInfo selecionado = listaUsuarios.getSelectedValue();
+        if (selecionado == null) {
+            JOptionPane.showMessageDialog(this, "Selecione um usuário para editar.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Requisito [source 80]: Senha (min: 3, max: 20)
+        String novaSenha = JOptionPane.showInputDialog(this, "Digite a nova senha para " + selecionado.getNome() + ":");
+        if (novaSenha == null) return; // Cancelado
+
+        if (novaSenha.trim().length() < 3 || novaSenha.trim().length() > 20) {
+            JOptionPane.showMessageDialog(this, "Senha deve ter entre 3 e 20 caracteres.", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JSONObject requisicao = new JSONObject();
+        requisicao.put("operacao", "ADMIN_EDITAR_USUARIO");
+        requisicao.put("token", this.token);
+        requisicao.put("id", String.valueOf(selecionado.getId())); // Protocolo [source 122]
+
+        JSONObject usuarioJson = new JSONObject();
+        usuarioJson.put("senha", novaSenha.trim());
+        requisicao.put("usuario", usuarioJson);
+
+        enviarRequisicaoAdmin(requisicao, "Senha alterada com sucesso.");
+    }
+
+    private void excluirUsuario() {
+        UsuarioInfo selecionado = listaUsuarios.getSelectedValue();
+        if (selecionado == null) {
+            JOptionPane.showMessageDialog(this, "Selecione um usuário para excluir.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Requisito [source 76]: "em momento algum o usuário admin poderá ser excluído"
+        if ("admin".equalsIgnoreCase(selecionado.getNome())) {
+            JOptionPane.showMessageDialog(this, "O usuário 'admin' não pode ser excluído.", "Ação Proibida", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int resposta = JOptionPane.showConfirmDialog(
+                this,
+                "Tem certeza que deseja excluir o usuário " + selecionado.getNome() + "?",
+                "Confirmar Exclusão",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+
+        if (resposta != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        JSONObject requisicao = new JSONObject();
+        requisicao.put("operacao", "ADMIN_EXCLUIR_USUARIO");
+        requisicao.put("token", this.token);
+        requisicao.put("id", String.valueOf(selecionado.getId())); // Protocolo [source 127]
+
+        enviarRequisicaoAdmin(requisicao, "Usuário excluído com sucesso.");
+    }
+
+    private void enviarRequisicaoAdmin(JSONObject requisicao, String msgSucesso) {
+        try {
+            String respostaJson = ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
+            JSONObject resp = new JSONObject(respostaJson);
+            String status = resp.getString("status").trim();
+            String msg = ProtocoloMensagem.getByStatus(status).getMensagem();
+
+            if ("200".equals(status)) {
+                JOptionPane.showMessageDialog(this, msgSucesso, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                carregarUsuarios(); // Recarrega a lista
+            } else {
+                JOptionPane.showMessageDialog(this, msg, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Erro de comunicação: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}

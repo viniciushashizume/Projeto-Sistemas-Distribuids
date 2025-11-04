@@ -83,7 +83,13 @@ public class TelaLogin extends JFrame {
             if ("200".equals(status)) {
                 String token = resposta.getString("token");
                 JOptionPane.showMessageDialog(this, mensagemTraduzida, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-                abrirTelaPrincipal(token);
+
+                // --- ALTERAÇÃO AQUI ---
+                // Verifica se é o usuário "admin" (conforme Requisitos PDF [source 74])
+                boolean isAdmin = "admin".equals(usuario);
+                abrirTelaPrincipal(token, isAdmin);
+                // --- FIM DA ALTERAÇÃO ---
+
             } else {
                 JOptionPane.showMessageDialog(this, mensagemTraduzida, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
@@ -100,9 +106,11 @@ public class TelaLogin extends JFrame {
         telaCadastro.setVisible(true);
     }
 
-    private void abrirTelaPrincipal(String token) {
+    // --- ALTERAÇÃO AQUI ---
+    private void abrirTelaPrincipal(String token, boolean isAdmin) {
         this.dispose();
-        TelaPrincipal telaPrincipal = new TelaPrincipal(token);
+        TelaPrincipal telaPrincipal = new TelaPrincipal(token, isAdmin);
         telaPrincipal.setVisible(true);
     }
+    // --- FIM DA ALTERAÇÃO ---
 }
