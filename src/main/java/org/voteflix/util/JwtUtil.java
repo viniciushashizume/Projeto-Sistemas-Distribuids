@@ -16,38 +16,46 @@ public class JwtUtil {
     public static String gerarToken(Usuario usuario) {
         return Jwts.builder()
                 .setSubject(usuario.getNome())
-                .claim("id", usuario.getId()) // Adiciona o ID do usuário ao token
+                .claim("id", usuario.getId()) // [cite: 34]
+                .claim("funcao", usuario.getFuncao()) // NOVO CLAIM
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + TEMPO_EXPIRACAO))
                 .signWith(CHAVE_SECRETA)
                 .compact();
     }
 
+    private static Claims getClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(CHAVE_SECRETA)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
     /**
-     * Extrai o nome do usuário (subject) de um token JWT.
+     * Extrai o nome do usuário (subject) de um token JWT. [cite: 35]
      * @param token O token JWT.
      * @return O nome do usuário.
      */
     public static String getNomeFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(CHAVE_SECRETA)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.getSubject();
+        return getClaims(token).getSubject();
     }
 
     /**
-     * Extrai o ID do usuário de um token JWT. <-- NOVO MÉTODO
+     * Extrai o ID do usuário de um token JWT. [cite: 34]
      * @param token O token JWT.
      * @return O ID do usuário.
      */
     public static int getIdFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(CHAVE_SECRETA)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.get("id", Integer.class);
+        return getClaims(token).get("id", Integer.class);
+    }
+
+    /**
+     * Extrai a FUNÇÃO (role) do usuário de um token JWT. <-- NOVO MÉTODO
+     * @param token O token JWT.
+     * @return A função ("user" ou "admin").
+     */
+    public static String getFuncaoFromToken(String token) {
+        return getClaims(token).get("funcao", String.class);
     }
 }

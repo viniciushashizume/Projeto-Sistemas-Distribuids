@@ -7,11 +7,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UsuarioBD {
 
     public Usuario buscarUsuarioPorNome(String nome) throws SQLException {
-        // ... (código existente)
+        // Query ATUALIZADA para incluir 'funcao'
         String sql = "SELECT * FROM usuarios WHERE nome = ?";
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -23,7 +25,8 @@ public class UsuarioBD {
                 return new Usuario(
                         rs.getInt("id"),
                         rs.getString("nome"),
-                        rs.getString("senha")
+                        rs.getString("senha"),
+                        rs.getString("funcao") // CAMPO ADICIONADO
                 );
             }
         }
@@ -31,20 +34,21 @@ public class UsuarioBD {
     }
 
     public boolean adicionarUsuario(Usuario usuario) throws SQLException {
-        // ... (código existente)
-        String sql = "INSERT INTO usuarios(nome, senha) VALUES(?, ?)";
+        // Query ATUALIZADA para incluir 'funcao'
+        String sql = "INSERT INTO usuarios(nome, senha, funcao) VALUES(?, ?, ?)";
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, usuario.getNome());
             pstmt.setString(2, usuario.getSenha());
+            pstmt.setString(3, usuario.getFuncao()); // CAMPO ADICIONADO
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
         }
     }
 
     public boolean atualizarSenha(int id, String novaSenha) throws SQLException {
-        // ... (código existente)
+        // (Sem alteração)
         String sql = "UPDATE usuarios SET senha = ? WHERE id = ?";
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -56,13 +60,8 @@ public class UsuarioBD {
         }
     }
 
-    /**
-     * Exclui um usuário do banco de dados com base no ID. <-- NOVO MÉTODO
-     * @param id O ID do usuário a ser excluído.
-     * @return true se a exclusão foi bem-sucedida, false caso contrário.
-     * @throws SQLException Se ocorrer um erro no banco de dados.
-     */
     public boolean excluirUsuario(int id) throws SQLException {
+        // (Sem alteração, mas agora usado pelo AdminExcluirUsuario)
         String sql = "DELETE FROM usuarios WHERE id = ?";
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -74,6 +73,7 @@ public class UsuarioBD {
     }
 
     public Usuario buscarUsuarioPorId(int id) throws SQLException {
+        // Query ATUALIZADA para incluir 'funcao'
         String sql = "SELECT * FROM usuarios WHERE id = ?";
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -85,10 +85,36 @@ public class UsuarioBD {
                 return new Usuario(
                         rs.getInt("id"),
                         rs.getString("nome"),
-                        rs.getString("senha")
+                        rs.getString("senha"),
+                        rs.getString("funcao") // CAMPO ADICIONADO
                 );
             }
         }
         return null;
+    }
+
+    /**
+     * Lista todos os usuários (exceto o próprio admin que solicita).
+     * @return Lista de Usuários.
+     * @throws SQLException Se ocorrer um erro no banco de dados.
+     */
+    public List<Usuario> buscarTodosUsuarios() throws SQLException {
+        // NOVO MÉTODO (para Admin)
+        List<Usuario> usuarios = new ArrayList<>();
+        String sql = "SELECT * FROM usuarios";
+        try (Connection conn = ConexaoBancoDados.conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                usuarios.add(new Usuario(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getString("senha"),
+                        rs.getString("funcao")
+                ));
+            }
+        }
+        return usuarios;
     }
 }

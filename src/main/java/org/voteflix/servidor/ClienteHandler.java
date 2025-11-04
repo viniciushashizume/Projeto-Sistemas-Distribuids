@@ -1,6 +1,7 @@
 package org.voteflix.servidor;
 
 import org.json.JSONObject;
+import org.voteflix.servidor.servico.FilmeServico; // NOVO IMPORT
 import org.voteflix.servidor.servico.UsuarioServico;
 import org.voteflix.servidor.gui.TelaServidor;
 import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
@@ -17,12 +18,14 @@ public class ClienteHandler extends Thread {
     private final Socket clienteSocket;
     private final UsuarioServico usuarioServico;
     private final TelaServidor telaServidor;
+    private final FilmeServico filmeServico;
     private String nomeUsuarioLogado = null;
 
     public ClienteHandler(Socket socket, TelaServidor tela) {
         this.clienteSocket = socket;
         this.usuarioServico = new UsuarioServico();
         this.telaServidor = tela;
+        this.filmeServico = new FilmeServico();
     }
 
     @Override
@@ -85,6 +88,23 @@ public class ClienteHandler extends Thread {
                     return usuarioServico.excluirProprioUsuario(requisicao);
                 case "LISTAR_PROPRIO_USUARIO":
                     return usuarioServico.listarProprioUsuario(requisicao);
+                // --- NOVAS Operações de Admin (Usuário) ---
+                case "ADMIN_LISTAR_USUARIOS":
+                    return usuarioServico.listarTodosUsuarios(requisicao);
+                case "ADMIN_EDITAR_USUARIO":
+                    return usuarioServico.adminEditarUsuario(requisicao);
+                case "ADMIN_EXCLUIR_USUARIO":
+                    return usuarioServico.adminExcluirUsuario(requisicao);
+
+                // --- NOVAS Operações de Filme (Admin e Comum) ---
+                case "CRIAR_FILME":
+                    return filmeServico.criarFilme(requisicao);
+                case "LISTAR_FILMES":
+                    return filmeServico.listarFilmes(requisicao);
+                case "EDITAR_FILME":
+                    return filmeServico.editarFilme(requisicao);
+                case "EXCLUIR_FILME":
+                    return filmeServico.excluirFilme(requisicao);
                 default:
                     resposta = new JSONObject();
                     ProtocoloMensagem.ERRO_OPERACAO_INVALIDA.aplicar(resposta); // 400

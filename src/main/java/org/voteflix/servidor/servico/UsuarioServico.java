@@ -1,5 +1,5 @@
 package org.voteflix.servidor.servico;
-
+import org.json.JSONArray; // <-- IMPORT ADICIONADO
 import org.json.JSONObject;
 import org.voteflix.bd.UsuarioBD;
 import org.voteflix.model.Usuario;
@@ -9,6 +9,7 @@ import org.voteflix.util.ProtocoloMensagem;
 import org.json.JSONException;
 
 import java.sql.SQLException;
+import java.util.List;
 
 public class UsuarioServico {
 
@@ -219,6 +220,146 @@ public class UsuarioServico {
         } catch (Exception e) {
             System.err.println("Erro ao processar token ou requisição: " + e.getMessage());
             e.printStackTrace();
+            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
+        }
+        return resposta;
+    }
+// --- NOVOS MÉTODOS DE ADMIN ---
+
+    /**
+     * [ADMIN] Lista todos os usuários cadastrados.
+     */
+    public JSONObject listarTodosUsuarios(JSONObject requisicao) {
+        JSONObject resposta = new JSONObject();
+        try {
+            String token = requisicao.getString("token");
+            String funcao = JwtUtil.getFuncaoFromToken(token);
+
+            // 1. Verifica permissão [cite: 15] (Requisito análogo)
+            if (!"admin".equals(funcao)) {
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
+                return resposta;
+            }
+
+            // 2. Busca dados
+            List<Usuario> usuarios = usuarioBD.buscarTodosUsuarios();
+            JSONArray listaUsuariosJson = new JSONArray();
+
+            for (Usuario u : usuarios) {
+                // JSON Schema de Usuários: id, nome
+                JSONObject usuarioJson = new JSONObject();
+                usuarioJson.put("id", String.valueOf(u.getId()));
+                usuarioJson.put("nome", u.getNome());
+                // (Não incluir senha na listagem)
+                listaUsuariosJson.put(usuarioJson);
+            }
+
+            ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
+            resposta.put("usuarios", listaUsuariosJson);
+
+        } catch (JSONException e) {
+            ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+        } catch (SQLException e) {
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
+        } catch (Exception e) {
+            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
+        }
+        return resposta;
+    }
+
+    /**
+     * [ADMIN] Atualiza a senha de qualquer usuário. [cite: 8]
+     */
+    public JSONObject adminEditarUsuario(JSONObject requisicao) {
+        JSONObject resposta = new JSONObject();
+        try {
+            String token = requisicao.getString("token");
+            String funcao = JwtUtil.getFuncaoFromToken(token);
+
+            // 1. Verifica permissão
+            if (!"admin".equals(funcao)) {
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
+                return resposta;
+            }
+
+            // 2. Pega dados
+            // (Protocolo: { "operacao": "...", "token": "...", "id": "10", "senha": "..." })
+            int idUsuarioAlvo = Integer.parseInt(requisicao.getString("id"));
+            String novaSenha = requisicao.getString("senha");
+
+            // 3. Validação de campos [cite: 80, 78]
+            if (novaSenha.length() < 3 || novaSenha.length() > 20 || !novaSenha.matches("[a-zA-Z0-9]+")) {
+                ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
+                return resposta;
+            }
+
+            // 4. Executa
+            boolean sucesso = usuarioBD.atualizarSenha(idUsuarioAlvo, novaSenha);
+
+            if (sucesso) {
+                ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
+            } else {
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
+            }
+
+        } catch (NumberFormatException | JSONException e) {
+            ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+        } catch (SQLException e) {
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
+        } catch (Exception e) {
+            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
+        }
+        return resposta;
+    }
+
+    /**
+     * [ADMIN] Exclui um usuário (que não seja o 'admin'). [cite: 9, 76]
+     */
+    public JSONObject adminExcluirUsuario(JSONObject requisicao) {
+        JSONObject resposta = new JSONObject();
+        try {
+            String token = requisicao.getString("token");
+            String funcao = JwtUtil.getFuncaoFromToken(token);
+
+            // 1. Verifica permissão
+            if (!"admin".equals(funcao)) {
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
+                return resposta;
+            }
+
+            // 2. Pega dados
+            // (Protocolo: { "operacao": "...", "token": "...", "id": "10" })
+            int idUsuarioAlvo = Integer.parseInt(requisicao.getString("id"));
+
+            // 3. Verifica se o alvo é o 'admin'
+            Usuario usuarioAlvo = usuarioBD.buscarUsuarioPorId(idUsuarioAlvo);
+            if (usuarioAlvo == null) {
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
+                return resposta;
+            }
+            if ("admin".equals(usuarioAlvo.getNome())) {
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403 (Admin não pode ser excluído [cite: 76])
+                return resposta;
+            }
+
+            // 4. Desconecta o usuário se estiver ativo [cite: 94]
+            Servidor.removerUsuarioAtivo(usuarioAlvo.getNome());
+
+            // 5. Executa exclusão
+            boolean sucesso = usuarioBD.excluirUsuario(idUsuarioAlvo);
+
+            if (sucesso) {
+                ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
+            } else {
+                // Caso raro (verificamos antes, mas por segurança)
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
+            }
+
+        } catch (NumberFormatException | JSONException e) {
+            ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+        } catch (SQLException e) {
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
+        } catch (Exception e) {
             ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
         }
         return resposta;
