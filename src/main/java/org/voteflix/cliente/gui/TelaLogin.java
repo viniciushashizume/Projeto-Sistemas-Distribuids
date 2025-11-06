@@ -3,7 +3,7 @@ package org.voteflix.cliente.gui;
 import org.voteflix.cliente.servico.ServicoCliente;
 import org.json.JSONObject;
 import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
-
+import org.voteflix.util.ClienteJwtUtil;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
@@ -84,10 +84,19 @@ public class TelaLogin extends JFrame {
                 String token = resposta.getString("token");
                 JOptionPane.showMessageDialog(this, mensagemTraduzida, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
 
-                // --- ALTERAÇÃO AQUI ---
-                // Verifica se é o usuário "admin" (conforme Requisitos PDF [source 74])
-                boolean isAdmin = "admin".equals(usuario);
+                // --- INÍCIO DA ALTERAÇÃO ---
+
+                // 1. Decodifica o token recebido do servidor para extrair a "funcao"
+                String funcao = ClienteJwtUtil.getFuncaoFromToken(token);
+
+                // 2. Define se é admin com base na "funcao" do token
+                boolean isAdmin = "admin".equals(funcao);
+
+                // (Linha antiga removida: boolean isAdmin = "admin".equals(usuario);)
+
+                // 3. Abre a tela principal passando o status de admin validado pelo token
                 abrirTelaPrincipal(token, isAdmin);
+
                 // --- FIM DA ALTERAÇÃO ---
 
             } else {
