@@ -5,6 +5,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale; // IMPORTAR ISSO
 
 /**
  * Modelo para representar um Filme (servidor e cliente).
@@ -30,7 +31,15 @@ public class Filme {
         this.diretor = json.getString("diretor");
         this.ano = json.getString("ano");
         this.sinopse = json.getString("sinopse");
-        this.nota = json.has("nota") ? Double.parseDouble(json.getString("nota")) : 0.0;
+
+        // CORREÇÃO (Lado Cliente): Substitui vírgula por ponto ANTES de converter
+        if (json.has("nota")) {
+            String notaStr = json.getString("nota").replace(",", ".");
+            this.nota = Double.parseDouble(notaStr);
+        } else {
+            this.nota = 0.0;
+        }
+
         this.qtdAvaliacoes = json.has("qtd_avaliacoes") ? Integer.parseInt(json.getString("qtd_avaliacoes")) : 0;
 
         this.generos = new ArrayList<>();
@@ -120,8 +129,8 @@ public class Filme {
         json.put("ano", this.ano);
         json.put("sinopse", this.sinopse);
 
-        // Campos de avaliação
-        json.put("nota", String.format("%.1f", this.nota));
+        // CORREÇÃO (Lado Servidor): Força o uso do Locale.US para garantir o PONTO
+        json.put("nota", String.format(Locale.US, "%.1f", this.nota));
         json.put("qtd_avaliacoes", String.valueOf(this.qtdAvaliacoes));
 
         JSONArray generosArray = new JSONArray();
@@ -141,6 +150,6 @@ public class Filme {
     @Override
     public String toString() {
         // Formata a nota para sempre ter uma casa decimal (ex: 5.0)
-        return String.format("%s (%s) - Nota: %.1f", titulo, ano, nota);
+        return String.format(Locale.US, "%s (%s) - Nota: %.1f", titulo, ano, nota);
     }
 }

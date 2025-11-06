@@ -5,13 +5,14 @@ import org.voteflix.util.ConexaoBancoDados;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.StringJoiner;
+import java.util.Set;
 
 public class FilmeBD {
 
     /**
-     * Verifica se um filme com o mesmo título, diretor e ano já existe. [cite: 39]
+     * Verifica se um filme com o mesmo título, diretor e ano já existe.
      */
     public boolean verificarFilmeUnico(String titulo, String diretor, String ano) throws SQLException {
         String sql = "SELECT id FROM filmes WHERE titulo = ? AND diretor = ? AND ano = ?";
@@ -27,10 +28,12 @@ public class FilmeBD {
 
     /**
      * Adiciona um novo filme e seus gêneros (transacional).
+     * CORREÇÃO: Removidas as colunas 'nota' e 'qtd_avaliacoes' do INSERT.
      */
     public boolean adicionarFilme(Filme filme) throws SQLException {
-        String sqlFilme = "INSERT INTO filmes(titulo, diretor, ano, sinopse, nota, qtd_avaliacoes) VALUES(?, ?, ?, ?, 0, 0)";
-        String sqlGenero = "INSERT INTO filmes_generos(id_filme, genero) VALUES(?, ?)";
+        // CORREÇÃO: Query ajustada para inserir apenas os campos que existem
+        String sqlFilme = "INSERT INTO filmes(titulo, diretor, ano, sinopse) VALUES(?, ?, ?, ?)";
+        String sqlGenero = "INSERT INTO filmes_generos(id_filme, id_genero) VALUES(?, (SELECT id FROM generos WHERE LOWER(TRIM(nome)) = LOWER(?)))";
         Connection conn = null;
         try {
             conn = ConexaoBancoDados.conectar();
@@ -60,11 +63,11 @@ public class FilmeBD {
                 }
             }
 
-            // 3. Insere os gêneros [cite: 62]
+            // 3. Insere os gêneros
             PreparedStatement pstmtGenero = conn.prepareStatement(sqlGenero);
-            for (String genero : filme.getGeneros()) {
+            for (String generoNome : filme.getGeneros()) {
                 pstmtGenero.setInt(1, idFilme);
-                pstmtGenero.setString(2, genero);
+                pstmtGenero.setString(2, generoNome);
                 pstmtGenero.addBatch();
             }
             pstmtGenero.executeBatch();
@@ -74,6 +77,7 @@ public class FilmeBD {
 
         } catch (SQLException e) {
             if (conn != null) conn.rollback();
+            e.printStackTrace(); // Deixando o log para o caso de outro erro
             throw e;
         } finally {
             if (conn != null) conn.close();
@@ -82,14 +86,16 @@ public class FilmeBD {
 
     /**
      * Lista todos os filmes, incluindo seus gêneros.
+     * CORREÇÃO: Seleciona colunas explícitas (sem f.*) e passa 0.0 e 0 para o construtor do Filme.
      */
     public List<Filme> listarTodosFilmes() throws SQLException {
         List<Filme> filmes = new ArrayList<>();
-        // Query complexa para buscar filmes e agrupar gêneros
-        String sql = "SELECT f.*, GROUP_CONCAT(fg.genero SEPARATOR ',') AS generos " +
+        // CORREÇÃO: Seleciona colunas explícitas e não usa f.*
+        String sql = "SELECT f.id, f.titulo, f.diretor, f.ano, f.sinopse, GROUP_CONCAT(TRIM(g.nome) SEPARATOR ',') AS generos " +
                 "FROM filmes f " +
                 "LEFT JOIN filmes_generos fg ON f.id = fg.id_filme " +
-                "GROUP BY f.id";
+                "LEFT JOIN generos g ON fg.id_genero = g.id " +
+                "GROUP BY f.id, f.titulo, f.diretor, f.ano, f.sinopse"; // GROUP BY atualizado
 
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -102,14 +108,15 @@ public class FilmeBD {
                     generosList.addAll(List.of(generosDb.split(",")));
                 }
 
+                // CORREÇÃO: Passa 0.0 e 0 manualmente, pois não vêm do BD
                 filmes.add(new Filme(
                         rs.getInt("id"),
                         rs.getString("titulo"),
                         rs.getString("diretor"),
                         rs.getString("ano"),
                         rs.getString("sinopse"),
-                        rs.getDouble("nota"),
-                        rs.getInt("qtd_avaliacoes"),
+                        0.0, // Hardcoded nota
+                        0,   // Hardcoded qtd_avaliacoes
                         generosList
                 ));
             }
@@ -119,11 +126,12 @@ public class FilmeBD {
 
     /**
      * Atualiza um filme e seus gêneros (transacional).
+     * (Esta query já estava correta, pois não tocava em 'nota' ou 'qtd_avaliacoes')
      */
     public boolean atualizarFilme(Filme filme) throws SQLException {
         String sqlFilme = "UPDATE filmes SET titulo = ?, diretor = ?, ano = ?, sinopse = ? WHERE id = ?";
         String sqlDeleteGeneros = "DELETE FROM filmes_generos WHERE id_filme = ?";
-        String sqlInsertGeneros = "INSERT INTO filmes_generos(id_filme, genero) VALUES(?, ?)";
+        String sqlInsertGeneros = "INSERT INTO filmes_generos(id_filme, id_genero) VALUES(?, (SELECT id FROM generos WHERE LOWER(TRIM(nome)) = LOWER(?)))";
         Connection conn = null;
 
         try {
@@ -151,9 +159,9 @@ public class FilmeBD {
 
             // 3. Insere novos gêneros
             PreparedStatement pstmtInsertGen = conn.prepareStatement(sqlInsertGeneros);
-            for (String genero : filme.getGeneros()) {
+            for (String generoNome : filme.getGeneros()) {
                 pstmtInsertGen.setInt(1, filme.getId());
-                pstmtInsertGen.setString(2, genero);
+                pstmtInsertGen.setString(2, generoNome);
                 pstmtInsertGen.addBatch();
             }
             pstmtInsertGen.executeBatch();
@@ -163,6 +171,7 @@ public class FilmeBD {
 
         } catch (SQLException e) {
             if (conn != null) conn.rollback();
+            e.printStackTrace();
             throw e;
         } finally {
             if (conn != null) conn.close();
@@ -170,12 +179,9 @@ public class FilmeBD {
     }
 
     /**
-     * Exclui um filme e suas reviews associadas (transacional).
+     * Exclui um filme (transacional).
      */
     public boolean excluirFilme(int id) throws SQLException {
-        // Dependência do ReviewBD
-        ReviewBD reviewBD = new ReviewBD();
-
         String sqlDeleteGeneros = "DELETE FROM filmes_generos WHERE id_filme = ?";
         String sqlDeleteFilme = "DELETE FROM filmes WHERE id = ?";
         Connection conn = null;
@@ -184,15 +190,12 @@ public class FilmeBD {
             conn = ConexaoBancoDados.conectar();
             conn.setAutoCommit(false); // Inicia transação
 
-            // 1. Exclui reviews associadas (conforme requisito )
-            reviewBD.excluirReviewsPorFilme(id, conn); // Passa a conexão transacional
-
-            // 2. Deleta gêneros
+            // 1. Deleta gêneros
             PreparedStatement pstmtDeleteGen = conn.prepareStatement(sqlDeleteGeneros);
             pstmtDeleteGen.setInt(1, id);
             pstmtDeleteGen.executeUpdate();
 
-            // 3. Deleta filme
+            // 2. Deleta filme
             PreparedStatement pstmtDeleteFilme = conn.prepareStatement(sqlDeleteFilme);
             pstmtDeleteFilme.setInt(1, id);
             int affectedRows = pstmtDeleteFilme.executeUpdate();
@@ -202,9 +205,27 @@ public class FilmeBD {
 
         } catch (SQLException e) {
             if (conn != null) conn.rollback();
+            e.printStackTrace();
             throw e;
         } finally {
             if (conn != null) conn.close();
         }
+    }
+
+    /**
+     * Busca os nomes de gêneros válidos do banco de dados.
+     */
+    public Set<String> getNomesGenerosValidos() throws SQLException {
+        Set<String> generos = new HashSet<>();
+        String sql = "SELECT TRIM(nome) as nome FROM generos";
+        try (Connection conn = ConexaoBancoDados.conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                generos.add(rs.getString("nome"));
+            }
+        }
+        return generos;
     }
 }

@@ -13,24 +13,37 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.stream.Collectors; // Importar
 
 public class FilmeServico {
 
     private final FilmeBD filmeBD;
-    // Gêneros pré-cadastrados [cite: 64]
-    private static final Set<String> GENEROS_VALIDOS = Set.of(
-            "Ação", "Aventura", "Comédia", "Drama", "Fantasia",
-            "Ficção Científica", "Terror", "Romance", "Documentário",
-            "Musical", "Animação"
-    );
+    private final Set<String> generosValidos;
 
     public FilmeServico() {
         this.filmeBD = new FilmeBD();
+        Set<String> generosCarregados;
+        try {
+            Set<String> nomesLimpos = filmeBD.getNomesGenerosValidos();
+
+            if (nomesLimpos.isEmpty()) {
+                System.err.println("AVISO: Nenhum gênero encontrado no banco de dados.");
+                generosCarregados = new HashSet<>();
+            } else {
+                generosCarregados = nomesLimpos.stream()
+                        .map(String::toLowerCase)
+                        .collect(Collectors.toSet());
+            }
+        } catch (SQLException e) {
+            generosCarregados = new HashSet<>();
+            System.err.println("ERRO FATAL: Não foi possível carregar gêneros do BD. " + e.getMessage());
+            e.printStackTrace(); // LOG DE ERRO
+        }
+        this.generosValidos = generosCarregados;
     }
 
     /**
-     * [ADMIN] Cria um novo filme. [cite: 15]
+     * [ADMIN] Cria um novo filme.
      */
     public JSONObject criarFilme(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
@@ -38,13 +51,11 @@ public class FilmeServico {
             String token = requisicao.getString("token");
             String funcao = JwtUtil.getFuncaoFromToken(token);
 
-            // 1. Verifica permissão (Apenas Admin) [cite: 15]
             if (!"admin".equals(funcao)) {
                 ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
             }
 
-            // 2. Extrai dados
             JSONObject dadosFilme = requisicao.getJSONObject("filme");
             String titulo = dadosFilme.getString("titulo");
             String diretor = dadosFilme.getString("diretor");
@@ -56,19 +67,16 @@ public class FilmeServico {
                 generos.add(generosJson.getString(i));
             }
 
-            // 3. Validação de campos [cite: 57, 59, 60, 61, 62, 63]
             if (!validarCamposFilme(titulo, diretor, ano, sinopse, generos)) {
                 ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
                 return resposta;
             }
 
-            // 4. Validação de Unicidade [cite: 39]
             if (filmeBD.verificarFilmeUnico(titulo, diretor, ano)) {
                 ProtocoloMensagem.ERRO_RECURSO_JA_EXISTE.aplicar(resposta); // 409
                 return resposta;
             }
 
-            // 5. Cria e insere
             Filme novoFilme = new Filme(titulo, diretor, ano, sinopse, generos);
             boolean sucesso = filmeBD.adicionarFilme(novoFilme);
 
@@ -80,25 +88,26 @@ public class FilmeServico {
 
         } catch (JSONException e) {
             ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+            e.printStackTrace(); // LOG DE ERRO
         } catch (SQLException e) {
             ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
+            e.printStackTrace(); // LOG DE ERRO
         } catch (Exception e) {
             ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
+            e.printStackTrace(); // LOG DE ERRO
         }
         return resposta;
     }
 
     /**
-     * [ADMIN/USER] Lista todos os filmes. [cite: 16]
+     * [ADMIN/USER] Lista todos os filmes.
      */
     public JSONObject listarFilmes(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
-            // 1. Valida o token (qualquer usuário logado pode listar)
             String token = requisicao.getString("token");
-            JwtUtil.getIdFromToken(token); // Apenas valida se o token é bom
+            JwtUtil.getIdFromToken(token);
 
-            // 2. Busca dados
             List<Filme> filmes = filmeBD.listarTodosFilmes();
             JSONArray listaFilmesJson = new JSONArray();
 
@@ -111,10 +120,13 @@ public class FilmeServico {
 
         } catch (JSONException e) {
             ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+            e.printStackTrace(); // LOG DE ERRO
         } catch (SQLException e) {
             ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
+            e.printStackTrace(); // LOG DE ERRO
         } catch (Exception e) {
             ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
+            e.printStackTrace(); // LOG DE ERRO
         }
         return resposta;
     }
@@ -128,13 +140,11 @@ public class FilmeServico {
             String token = requisicao.getString("token");
             String funcao = JwtUtil.getFuncaoFromToken(token);
 
-            // 1. Verifica permissão (Apenas Admin)
             if (!"admin".equals(funcao)) {
                 ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
             }
 
-            // 2. Extrai dados
             JSONObject dadosFilme = requisicao.getJSONObject("filme");
             int id = Integer.parseInt(dadosFilme.getString("id"));
             String titulo = dadosFilme.getString("titulo");
@@ -147,40 +157,37 @@ public class FilmeServico {
                 generos.add(generosJson.getString(i));
             }
 
-            // 3. Validação de campos [cite: 57, 59, 60, 61, 62, 63]
             if (id <= 0 || !validarCamposFilme(titulo, diretor, ano, sinopse, generos)) {
                 ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
                 return resposta;
             }
 
-            // 4. Validação de Unicidade (não pode alterar para um combo que já existe)
-            // (Omissão por simplicidade, mas idealmente deveria verificar se o
-            // novo combo (titulo, diretor, ano) já existe em OUTRO id)
-
-            // 5. Cria e atualiza
             Filme filmeAtualizado = new Filme(titulo, diretor, ano, sinopse, generos);
-            filmeAtualizado.setId(id); // Define o ID para a atualização
+            filmeAtualizado.setId(id);
 
             boolean sucesso = filmeBD.atualizarFilme(filmeAtualizado);
 
             if (sucesso) {
                 ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
             } else {
-                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404 (ID do filme não encontrado)
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
             }
 
         } catch (NumberFormatException | JSONException e) {
             ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+            e.printStackTrace(); // LOG DE ERRO
         } catch (SQLException e) {
             ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
+            e.printStackTrace(); // LOG DE ERRO
         } catch (Exception e) {
             ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
+            e.printStackTrace(); // LOG DE ERRO
         }
         return resposta;
     }
 
     /**
-     * [ADMIN] Exclui um filme. [cite: 18]
+     * [ADMIN] Exclui um filme.
      */
     public JSONObject excluirFilme(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
@@ -188,16 +195,12 @@ public class FilmeServico {
             String token = requisicao.getString("token");
             String funcao = JwtUtil.getFuncaoFromToken(token);
 
-            // 1. Verifica permissão (Apenas Admin) [cite: 18]
             if (!"admin".equals(funcao)) {
                 ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
             }
 
-            // 2. Extrai dados
             int id = Integer.parseInt(requisicao.getString("id"));
-
-            // 3. Executa exclusão (BD cuida de excluir reviews )
             boolean sucesso = filmeBD.excluirFilme(id);
 
             if (sucesso) {
@@ -208,28 +211,30 @@ public class FilmeServico {
 
         } catch (NumberFormatException | JSONException e) {
             ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+            e.printStackTrace(); // LOG DE ERRO
         } catch (SQLException e) {
             ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta); // 500
+            e.printStackTrace(); // LOG DE ERRO
         } catch (Exception e) {
             ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
+            e.printStackTrace(); // LOG DE ERRO
         }
         return resposta;
     }
 
 
     /**
-     * Valida os campos de um filme contra os requisitos. [cite: 57-64]
+     * Valida os campos de um filme contra os requisitos.
      */
     private boolean validarCamposFilme(String titulo, String diretor, String ano, String sinopse, List<String> generos) {
-        if (titulo == null || titulo.length() < 3 || titulo.length() > 30) return false; // [cite: 59]
-        if (diretor == null || diretor.length() < 3 || diretor.length() > 30) return false; // [cite: 61]
-        if (ano == null || ano.length() < 3 || ano.length() > 4 || !ano.matches("\\d+")) return false; // [cite: 60, 57]
-        if (sinopse == null || sinopse.length() > 250) return false; // [cite: 63]
-        if (generos == null || generos.isEmpty()) return false; // [cite: 62]
+        if (titulo == null || titulo.length() < 3 || titulo.length() > 30) return false;
+        if (diretor == null || diretor.length() < 3 || diretor.length() > 30) return false;
+        if (ano == null || ano.length() < 3 || ano.length() > 4 || !ano.matches("\\d+")) return false;
+        if (sinopse == null || sinopse.length() > 250) return false;
+        if (generos == null || generos.isEmpty()) return false;
 
-        // Valida se todos os gêneros enviados estão na lista de pré-cadastrados [cite: 64]
         for (String g : generos) {
-            if (!GENEROS_VALIDOS.contains(g)) return false;
+            if (g == null || !this.generosValidos.contains(g.toLowerCase())) return false;
         }
 
         return true;
