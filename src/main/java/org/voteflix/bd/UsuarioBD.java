@@ -92,15 +92,10 @@ public class UsuarioBD {
         }
         return null;
     }
-
-    /**
-     * Lista todos os usuários (exceto o próprio admin que solicita).
-     * @return Lista de Usuários.
-     * @throws SQLException Se ocorrer um erro no banco de dados.
-     */
     public List<Usuario> buscarTodosUsuarios() throws SQLException {
         // NOVO MÉTODO (para Admin)
         List<Usuario> usuarios = new ArrayList<>();
+        // Query ATUALIZADA para incluir 'funcao' (como no seu arquivo)
         String sql = "SELECT * FROM usuarios";
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {

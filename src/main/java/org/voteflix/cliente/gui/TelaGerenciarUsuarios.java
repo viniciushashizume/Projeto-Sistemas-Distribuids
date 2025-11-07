@@ -1,7 +1,7 @@
 package org.voteflix.cliente.gui;
 
 import org.voteflix.cliente.servico.ServicoCliente;
-import org.voteflix.model.UsuarioInfo;
+import org.voteflix.model.UsuarioInfo; // Importa o modelo criado
 import org.voteflix.util.ProtocoloMensagem;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -46,6 +46,7 @@ public class TelaGerenciarUsuarios extends JDialog {
 
     private void carregarUsuarios() {
         JSONObject requisicao = new JSONObject();
+        // Protocolo: "LISTAR_USUARIOS"
         requisicao.put("operacao", "LISTAR_USUARIOS");
         requisicao.put("token", this.token);
 
@@ -59,10 +60,12 @@ public class TelaGerenciarUsuarios extends JDialog {
                 if (resposta.has("usuarios")) {
                     JSONArray usuariosArray = resposta.getJSONArray("usuarios");
                     for (int i = 0; i < usuariosArray.length(); i++) {
+                        // Usa o UsuarioInfo para popular a lista
                         listModel.addElement(new UsuarioInfo(usuariosArray.getJSONObject(i)));
                     }
                 }
             } else {
+                // Protocolo: Erros 401, 403, etc.
                 String msgErro = ProtocoloMensagem.getByStatus(status).getMensagem();
                 JOptionPane.showMessageDialog(this, "Erro ao carregar usuários: " + msgErro, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
                 dispose(); // Fecha a tela se não tiver permissão (ex: 403)
@@ -79,20 +82,23 @@ public class TelaGerenciarUsuarios extends JDialog {
             return;
         }
 
-        // Requisito [source 80]: Senha (min: 3, max: 20)
+        // Validação (Requisito: senha min 3, max 20)
         String novaSenha = JOptionPane.showInputDialog(this, "Digite a nova senha para " + selecionado.getNome() + ":");
         if (novaSenha == null) return; // Cancelado
 
         if (novaSenha.trim().length() < 3 || novaSenha.trim().length() > 20) {
-            JOptionPane.showMessageDialog(this, "Senha deve ter entre 3 e 20 caracteres.", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Senha deve ter entre 3 e 20 caracteres.", "Erro de Validação (405)", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         JSONObject requisicao = new JSONObject();
+        // Protocolo: "ADMIN_EDITAR_USUARIO"
         requisicao.put("operacao", "ADMIN_EDITAR_USUARIO");
         requisicao.put("token", this.token);
-        requisicao.put("id", String.valueOf(selecionado.getId())); // Protocolo [source 122]
+        // Protocolo: "id" no nível principal
+        requisicao.put("id", String.valueOf(selecionado.getId()));
 
+        // Protocolo: "usuario": {"senha": "..."}
         JSONObject usuarioJson = new JSONObject();
         usuarioJson.put("senha", novaSenha.trim());
         requisicao.put("usuario", usuarioJson);
@@ -107,9 +113,9 @@ public class TelaGerenciarUsuarios extends JDialog {
             return;
         }
 
-        // Requisito [source 76]: "em momento algum o usuário admin poderá ser excluído"
+        // Requisito: "em momento algum o usuário admin poderá ser excluído"
         if ("admin".equalsIgnoreCase(selecionado.getNome())) {
-            JOptionPane.showMessageDialog(this, "O usuário 'admin' não pode ser excluído.", "Ação Proibida", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "O usuário 'admin' não pode ser excluído.", "Ação Proibida (403)", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -126,13 +132,16 @@ public class TelaGerenciarUsuarios extends JDialog {
         }
 
         JSONObject requisicao = new JSONObject();
+        // Protocolo: "ADMIN_EXCLUIR_USUARIO"
         requisicao.put("operacao", "ADMIN_EXCLUIR_USUARIO");
         requisicao.put("token", this.token);
-        requisicao.put("id", String.valueOf(selecionado.getId())); // Protocolo [source 127]
+        // Protocolo: "id"
+        requisicao.put("id", String.valueOf(selecionado.getId()));
 
         enviarRequisicaoAdmin(requisicao, "Usuário excluído com sucesso.");
     }
 
+    // Método auxiliar para enviar requisições e tratar respostas (200 ou Erro)
     private void enviarRequisicaoAdmin(JSONObject requisicao, String msgSucesso) {
         try {
             String respostaJson = ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
@@ -141,9 +150,10 @@ public class TelaGerenciarUsuarios extends JDialog {
             String msg = ProtocoloMensagem.getByStatus(status).getMensagem();
 
             if ("200".equals(status)) {
-                JOptionPane.showMessageDialog(this, msgSucesso, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, msgSucesso, "Sucesso (200)", JOptionPane.INFORMATION_MESSAGE);
                 carregarUsuarios(); // Recarrega a lista
             } else {
+                // Protocolo: 401, 403, 404, 405, 422, 500
                 JOptionPane.showMessageDialog(this, msg, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException e) {

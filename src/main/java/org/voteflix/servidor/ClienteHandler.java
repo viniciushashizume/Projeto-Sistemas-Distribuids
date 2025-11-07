@@ -89,13 +89,12 @@ public class ClienteHandler extends Thread {
                 case "LISTAR_PROPRIO_USUARIO":
                     return usuarioServico.listarProprioUsuario(requisicao);
                 // --- NOVAS Operações de Admin (Usuário) ---
-                case "ADMIN_LISTAR_USUARIOS":
+                case "LISTAR_USUARIOS":
                     return usuarioServico.listarTodosUsuarios(requisicao);
                 case "ADMIN_EDITAR_USUARIO":
                     return usuarioServico.adminEditarUsuario(requisicao);
                 case "ADMIN_EXCLUIR_USUARIO":
                     return usuarioServico.adminExcluirUsuario(requisicao);
-
                 // --- NOVAS Operações de Filme (Admin e Comum) ---
                 case "CRIAR_FILME":
                     return filmeServico.criarFilme(requisicao);

@@ -59,9 +59,9 @@ public class TelaPrincipal extends JFrame {
         if (isAdmin) {
             // Botões exclusivos de ADMIN
             JButton botaoGerenciarFilmes = new JButton("Gerenciar Filmes (Admin)");
-            JButton botaoGerenciarUsuarios = new JButton("Gerenciar Usuários (Admin)");
+            JButton botaoGerenciarUsuarios = new JButton("Gerenciar Usuários (Admin)"); // <-- ESTE BOTÃO
             painelAcoes.add(botaoGerenciarFilmes);
-            painelAcoes.add(botaoGerenciarUsuarios);
+            painelAcoes.add(botaoGerenciarUsuarios); // <-- ESTA LINHA
 
             // Listeners dos botões de admin
             botaoGerenciarFilmes.addActionListener(e -> abrirTelaGerenciarFilmes());
@@ -104,6 +104,7 @@ public class TelaPrincipal extends JFrame {
         telaUsuarios.setVisible(true);
     }
     // --- FIM DOS NOVOS MÉTODOS ---
+
 
 
     private void abrirTelaEdicao() {

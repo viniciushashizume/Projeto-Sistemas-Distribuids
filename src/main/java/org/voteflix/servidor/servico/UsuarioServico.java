@@ -224,6 +224,8 @@ public class UsuarioServico {
         }
         return resposta;
     }
+    // ... (imports e outros métodos)
+
 // --- NOVOS MÉTODOS DE ADMIN ---
 
     /**
@@ -235,7 +237,7 @@ public class UsuarioServico {
             String token = requisicao.getString("token");
             String funcao = JwtUtil.getFuncaoFromToken(token);
 
-            // 1. Verifica permissão [cite: 15] (Requisito análogo)
+            // 1. Verifica permissão (Protocolo: Erro 403)
             if (!"admin".equals(funcao)) {
                 ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
@@ -250,10 +252,10 @@ public class UsuarioServico {
                 JSONObject usuarioJson = new JSONObject();
                 usuarioJson.put("id", String.valueOf(u.getId()));
                 usuarioJson.put("nome", u.getNome());
-                // (Não incluir senha na listagem)
                 listaUsuariosJson.put(usuarioJson);
             }
 
+            // Protocolo: Sucesso 200
             ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
             resposta.put("usuarios", listaUsuariosJson);
 
@@ -268,7 +270,8 @@ public class UsuarioServico {
     }
 
     /**
-     * [ADMIN] Atualiza a senha de qualquer usuário. [cite: 8]
+     * [ADMIN] Atualiza a senha de qualquer usuário.
+     * (MÉTODO CORRIGIDO PARA SEGUIR O PROTOCOLO)
      */
     public JSONObject adminEditarUsuario(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
@@ -276,19 +279,24 @@ public class UsuarioServico {
             String token = requisicao.getString("token");
             String funcao = JwtUtil.getFuncaoFromToken(token);
 
-            // 1. Verifica permissão
+            // 1. Verifica permissão (Protocolo: Erro 403)
             if (!"admin".equals(funcao)) {
                 ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
             }
 
-            // 2. Pega dados
-            // (Protocolo: { "operacao": "...", "token": "...", "id": "10", "senha": "..." })
+            // 2. Pega dados (Protocolo: {..."token": "...", "id": "10", "usuario": {"senha": "..."} })
             int idUsuarioAlvo = Integer.parseInt(requisicao.getString("id"));
-            String novaSenha = requisicao.getString("senha");
 
-            // 3. Validação de campos [cite: 80, 78]
-            if (novaSenha.length() < 3 || novaSenha.length() > 20 || !novaSenha.matches("[a-zA-Z0-9]+")) {
+            // --- INÍCIO DA CORREÇÃO ---
+            // O cliente envia a senha dentro de um objeto "usuario"
+            JSONObject dadosUsuario = requisicao.getJSONObject("usuario");
+            String novaSenha = dadosUsuario.getString("senha");
+            // --- FIM DA CORREÇÃO ---
+
+            // 3. Validação de campos (Protocolo: Erro 405)
+            // (Assumindo validação de 3-20 caracteres como em "criarUsuario")
+            if (novaSenha.length() < 3 || novaSenha.length() > 20) {
                 ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
                 return resposta;
             }
@@ -313,7 +321,7 @@ public class UsuarioServico {
     }
 
     /**
-     * [ADMIN] Exclui um usuário (que não seja o 'admin'). [cite: 9, 76]
+     * [ADMIN] Exclui um usuário (que não seja o 'admin').
      */
     public JSONObject adminExcluirUsuario(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
@@ -321,28 +329,27 @@ public class UsuarioServico {
             String token = requisicao.getString("token");
             String funcao = JwtUtil.getFuncaoFromToken(token);
 
-            // 1. Verifica permissão
+            // 1. Verifica permissão (Protocolo: Erro 403)
             if (!"admin".equals(funcao)) {
                 ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
             }
 
-            // 2. Pega dados
-            // (Protocolo: { "operacao": "...", "token": "...", "id": "10" })
+            // 2. Pega dados (Protocolo: {..."token": "...", "id": "10" })
             int idUsuarioAlvo = Integer.parseInt(requisicao.getString("id"));
 
-            // 3. Verifica se o alvo é o 'admin'
+            // 3. Verifica se o alvo é o 'admin' (Requisito: Admin não pode ser excluído)
             Usuario usuarioAlvo = usuarioBD.buscarUsuarioPorId(idUsuarioAlvo);
             if (usuarioAlvo == null) {
                 ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
                 return resposta;
             }
             if ("admin".equals(usuarioAlvo.getNome())) {
-                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403 (Admin não pode ser excluído [cite: 76])
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
             }
 
-            // 4. Desconecta o usuário se estiver ativo [cite: 94]
+            // 4. Desconecta o usuário se estiver ativo (Requisito)
             Servidor.removerUsuarioAtivo(usuarioAlvo.getNome());
 
             // 5. Executa exclusão
@@ -351,7 +358,6 @@ public class UsuarioServico {
             if (sucesso) {
                 ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
             } else {
-                // Caso raro (verificamos antes, mas por segurança)
                 ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
             }
 
