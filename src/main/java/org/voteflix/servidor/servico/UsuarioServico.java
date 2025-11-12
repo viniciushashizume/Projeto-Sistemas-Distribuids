@@ -142,7 +142,12 @@ public class UsuarioServico {
 
             JSONObject dadosUsuario = requisicao.getJSONObject("usuario");
             String novaSenha = dadosUsuario.getString("senha");
-
+            String nomeUsuario = JwtUtil.getNomeFromToken(token);
+            if ("admin".equals(nomeUsuario)) {
+                // Impede que o usuário "admin" edite a própria senha por esta rota
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
+                return resposta;
+            }
             if (novaSenha.isEmpty()) {
                 ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
                 return resposta;
@@ -271,7 +276,7 @@ public class UsuarioServico {
 
     /**
      * [ADMIN] Atualiza a senha de qualquer usuário.
-     * (MÉTODO CORRIGIDO PARA SEGUIR O PROTOCOLO)
+     * (MÉTODO CORRIGIDO PARA IMPEDIR EDIÇÃO DO ADMIN)
      */
     public JSONObject adminEditarUsuario(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
@@ -288,25 +293,39 @@ public class UsuarioServico {
             // 2. Pega dados (Protocolo: {..."token": "...", "id": "10", "usuario": {"senha": "..."} })
             int idUsuarioAlvo = Integer.parseInt(requisicao.getString("id"));
 
-            // --- INÍCIO DA CORREÇÃO ---
-            // O cliente envia a senha dentro de um objeto "usuario"
+            // --- INÍCIO DA CORREÇÃO DE SEGURANÇA ---
+            // 3. Verifica se o alvo é o 'admin' (Requisito: Admin não pode ser editado)
+            Usuario usuarioAlvo = usuarioBD.buscarUsuarioPorId(idUsuarioAlvo);
+            if (usuarioAlvo == null) {
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
+                return resposta;
+            }
+            // Impede que o usuário "admin" seja editado
+            if ("admin".equals(usuarioAlvo.getNome())) {
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
+                return resposta;
+            }
+            // --- FIM DA CORREÇÃO DE SEGURANÇA ---
+
+
+            // 4. Pega nova senha
             JSONObject dadosUsuario = requisicao.getJSONObject("usuario");
             String novaSenha = dadosUsuario.getString("senha");
-            // --- FIM DA CORREÇÃO ---
 
-            // 3. Validação de campos (Protocolo: Erro 405)
-            // (Assumindo validação de 3-20 caracteres como em "criarUsuario")
+
+            // 5. Validação de campos (Protocolo: Erro 405)
             if (novaSenha.length() < 3 || novaSenha.length() > 20) {
                 ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
                 return resposta;
             }
 
-            // 4. Executa
+            // 6. Executa
             boolean sucesso = usuarioBD.atualizarSenha(idUsuarioAlvo, novaSenha);
 
             if (sucesso) {
                 ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
             } else {
+                // Caso o ID exista na checagem acima mas falhe no update (raro)
                 ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
             }
 
@@ -319,7 +338,6 @@ public class UsuarioServico {
         }
         return resposta;
     }
-
     /**
      * [ADMIN] Exclui um usuário (que não seja o 'admin').
      */
