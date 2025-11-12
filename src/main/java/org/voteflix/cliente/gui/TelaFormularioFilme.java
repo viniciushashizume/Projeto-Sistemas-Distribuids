@@ -127,7 +127,7 @@ public class TelaFormularioFilme extends JDialog {
         String sinopse = areaSinopse.getText().trim();
         List<String> generos = listaGeneros.getSelectedValuesList();
 
-        if (titulo.length() < 3 || titulo.length() > 30) {
+        /*if (titulo.length() < 3 || titulo.length() > 30) {
             JOptionPane.showMessageDialog(this, "Título deve ter entre 3 e 30 caracteres.", "Erro de Validação", JOptionPane.ERROR_MESSAGE); return;
         }
         if (diretor.length() < 3 || diretor.length() > 30) {
@@ -141,7 +141,7 @@ public class TelaFormularioFilme extends JDialog {
         }
         if (sinopse.length() > 250) { // Requisito [source 63]
             JOptionPane.showMessageDialog(this, "Sinopse deve ter no máximo 250 caracteres.", "Erro de Validação", JOptionPane.ERROR_MESSAGE); return;
-        }
+        }*/
 
         // Constrói o objeto Filme
         int id = (filmeExistente != null) ? filmeExistente.getId() : 0;
@@ -159,14 +159,19 @@ public class TelaFormularioFilme extends JDialog {
             String respostaJson = ServicoCliente.getInstancia().enviarRequisicao(requisicao.toString());
             JSONObject resp = new JSONObject(respostaJson);
             String status = resp.getString("status").trim();
-            String msg = ProtocoloMensagem.getByStatus(status).getMensagem();
+
+            // CORREÇÃO: Ler a mensagem diretamente da resposta do servidor
+            // O servidor já definiu a mensagem correta (ex: "Erro: Recurso ja existe")
+            String msg = resp.getString("mensagem");
 
             if ("201".equals(status) || "200".equals(status)) {
+                // Sucesso (Status 200 ou 201)
                 JOptionPane.showMessageDialog(this, msg, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 this.salvo = true;
                 dispose();
             } else {
-                // Status 405 (Campos inválidos) ou 409 (Já existe)
+                // Erro (Qualquer outro status: 401, 403, 405, 409, 422, 500, etc.)
+                // A 'msg' virá pronta do servidor, tratando todos os casos
                 JOptionPane.showMessageDialog(this, msg, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException e) {
