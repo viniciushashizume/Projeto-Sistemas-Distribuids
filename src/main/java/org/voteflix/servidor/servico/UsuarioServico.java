@@ -103,22 +103,18 @@ public class UsuarioServico {
         JSONObject resposta = new JSONObject();
         try {
             // 1. Tratamento do Erro 422 (Chaves faltantes)
-            // Se a chave "token" não existir, lança JSONException
             String token = requisicao.getString("token");
 
             // 2. Tratamento do Erro 401 (Token inválido)
-            // Se o token for inválido (expirado, assinatura, etc.), lança Exceção
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
 
             // 3. Tratamento do Erro 404 (Recurso inexistente)
-            // O token é válido (não caiu no 401mas o usuário não está na lista de ativos.
             if (!Servidor.isUsuarioAtivo(nomeUsuario)) {
                 ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
                 return resposta;
             }
 
             // 4. Sucesso (200)
-            // Remove o usuário da lista de ativos.
             Servidor.removerUsuarioAtivo(nomeUsuario);
             ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta); // 200
 
@@ -184,6 +180,10 @@ public class UsuarioServico {
             int usuarioId = JwtUtil.getIdFromToken(token);
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
 
+            if ("admin".equals(nomeUsuario)) {
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
+                return resposta;
+            }
             Servidor.removerUsuarioAtivo(nomeUsuario);
             boolean sucesso = usuarioBD.excluirUsuario(usuarioId);
 
@@ -229,13 +229,10 @@ public class UsuarioServico {
         }
         return resposta;
     }
-    // ... (imports e outros métodos)
+
 
 // --- NOVOS MÉTODOS DE ADMIN ---
 
-    /**
-     * [ADMIN] Lista todos os usuários cadastrados.
-     */
     public JSONObject listarTodosUsuarios(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
@@ -274,10 +271,6 @@ public class UsuarioServico {
         return resposta;
     }
 
-    /**
-     * [ADMIN] Atualiza a senha de qualquer usuário.
-     * (MÉTODO CORRIGIDO PARA IMPEDIR EDIÇÃO DO ADMIN)
-     */
     public JSONObject adminEditarUsuario(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
@@ -290,11 +283,9 @@ public class UsuarioServico {
                 return resposta;
             }
 
-            // 2. Pega dados (Protocolo: {..."token": "...", "id": "10", "usuario": {"senha": "..."} })
             int idUsuarioAlvo = Integer.parseInt(requisicao.getString("id"));
 
-            // --- INÍCIO DA CORREÇÃO DE SEGURANÇA ---
-            // 3. Verifica se o alvo é o 'admin' (Requisito: Admin não pode ser editado)
+            // 3. Verifica se o alvo é o 'admin' (Admin não pode ser editado)
             Usuario usuarioAlvo = usuarioBD.buscarUsuarioPorId(idUsuarioAlvo);
             if (usuarioAlvo == null) {
                 ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
@@ -305,15 +296,18 @@ public class UsuarioServico {
                 ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta); // 403
                 return resposta;
             }
-            // --- FIM DA CORREÇÃO DE SEGURANÇA ---
 
 
             // 4. Pega nova senha
             JSONObject dadosUsuario = requisicao.getJSONObject("usuario");
             String novaSenha = dadosUsuario.getString("senha");
 
+            if (novaSenha.isEmpty()) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+                return resposta;
+            }
 
-            // 5. Validação de campos (Protocolo: Erro 405)
+            // REQUISITO 2: senha com valores menores ou maiores (fora do padrão) -> ERRO 405
             if (novaSenha.length() < 3 || novaSenha.length() > 20) {
                 ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
                 return resposta;
@@ -338,9 +332,7 @@ public class UsuarioServico {
         }
         return resposta;
     }
-    /**
-     * [ADMIN] Exclui um usuário (que não seja o 'admin').
-     */
+
     public JSONObject adminExcluirUsuario(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
@@ -353,10 +345,9 @@ public class UsuarioServico {
                 return resposta;
             }
 
-            // 2. Pega dados (Protocolo: {..."token": "...", "id": "10" })
             int idUsuarioAlvo = Integer.parseInt(requisicao.getString("id"));
 
-            // 3. Verifica se o alvo é o 'admin' (Requisito: Admin não pode ser excluído)
+            // 3. Verifica se o alvo é o 'admin' (Admin não pode ser excluído)
             Usuario usuarioAlvo = usuarioBD.buscarUsuarioPorId(idUsuarioAlvo);
             if (usuarioAlvo == null) {
                 ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404

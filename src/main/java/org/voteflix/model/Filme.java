@@ -21,10 +21,6 @@ public class Filme {
     private int qtdAvaliacoes;
     private List<String> generos;
 
-    /**
-     * CONSTRUTOR 1 (Para Cliente: TelaListarFilmes)
-     * Usado para popular a partir do JSON recebido do servidor.
-     */
     public Filme(JSONObject json) {
         this.id = Integer.parseInt(json.getString("id"));
         this.titulo = json.getString("titulo");
@@ -32,7 +28,6 @@ public class Filme {
         this.ano = json.getString("ano");
         this.sinopse = json.getString("sinopse");
 
-        // CORREÇÃO (Lado Cliente): Substitui vírgula por ponto ANTES de converter
         if (json.has("nota")) {
             String notaStr = json.getString("nota").replace(",", ".");
             this.nota = Double.parseDouble(notaStr);
@@ -51,10 +46,6 @@ public class Filme {
         }
     }
 
-    /**
-     * CONSTRUTOR 2 (Para Servidor: Criar)
-     * Usado ao criar um novo filme (vem da requisição do admin).
-     */
     public Filme(String titulo, String diretor, String ano, String sinopse, List<String> generos) {
         this.id = 0; // ID será gerado pelo BD
         this.titulo = titulo;
@@ -66,10 +57,6 @@ public class Filme {
         this.qtdAvaliacoes = 0;
     }
 
-    /**
-     * CONSTRUTOR 3 (Para Servidor: Ler do BD)
-     * Usado ao ler um filme completo do banco de dados.
-     */
     public Filme(int id, String titulo, String diretor, String ano, String sinopse, double nota, int qtdAvaliacoes, List<String> generos) {
         this.id = id;
         this.titulo = titulo;
@@ -81,10 +68,6 @@ public class Filme {
         this.generos = generos;
     }
 
-    /**
-     * CONSTRUTOR 4 (Para Cliente: TelaFormularioFilme)
-     * Usado para criar um objeto Filme manualmente a partir dos campos da GUI.
-     */
     public Filme(int id, String titulo, String diretor, String ano, String sinopse, List<String> generos) {
         this.id = id;
         this.titulo = titulo;
@@ -116,10 +99,6 @@ public class Filme {
     public void setSinopse(String sinopse) { this.sinopse = sinopse; }
     public void setGeneros(List<String> generos) { this.generos = generos; }
 
-    /**
-     * (SERVIDOR) Cria um JSONObject para enviar em respostas (ex: LISTAR_FILMES).
-     * Segue o padrão snake_case do protocolo.
-     */
     public JSONObject toJSONObject() {
         JSONObject json = new JSONObject();
 
@@ -144,9 +123,6 @@ public class Filme {
         return json;
     }
 
-    /**
-     * (CLIENTE) Usado para exibição na JList.
-     */
     @Override
     public String toString() {
         // Formata a nota para sempre ter uma casa decimal (ex: 5.0)

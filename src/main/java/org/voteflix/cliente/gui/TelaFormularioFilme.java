@@ -160,8 +160,6 @@ public class TelaFormularioFilme extends JDialog {
             JSONObject resp = new JSONObject(respostaJson);
             String status = resp.getString("status").trim();
 
-            // CORREÇÃO: Ler a mensagem diretamente da resposta do servidor
-            // O servidor já definiu a mensagem correta (ex: "Erro: Recurso ja existe")
             String msg = resp.getString("mensagem");
 
             if ("201".equals(status) || "200".equals(status)) {
@@ -170,8 +168,6 @@ public class TelaFormularioFilme extends JDialog {
                 this.salvo = true;
                 dispose();
             } else {
-                // Erro (Qualquer outro status: 401, 403, 405, 409, 422, 500, etc.)
-                // A 'msg' virá pronta do servidor, tratando todos os casos
                 JOptionPane.showMessageDialog(this, msg, "Erro (" + status + ")", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException e) {
