@@ -67,7 +67,14 @@ public class FilmeServico {
                 generos.add(generosJson.getString(i));
             }
 
-            if (!validarCamposFilme(titulo, diretor, ano, sinopse, generos)) {
+            // PASSO 1: Validar campos nulos/faltantes (422)
+            if (!validarCamposNulosFilme(titulo, diretor, ano, sinopse, generos)) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+                return resposta;
+            }
+
+            // PASSO 2: Validar padrão/tamanho dos campos (405)
+            if (!validarPadraoCamposFilme(titulo, diretor, ano, sinopse, generos)) {
                 ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
                 return resposta;
             }
@@ -157,7 +164,15 @@ public class FilmeServico {
                 generos.add(generosJson.getString(i));
             }
 
-            if (id <= 0 || !validarCamposFilme(titulo, diretor, ano, sinopse, generos)) {
+            // PASSO 1: Validar campos nulos/faltantes (422)
+            if (!validarCamposNulosFilme(titulo, diretor, ano, sinopse, generos)) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
+                return resposta;
+            }
+
+            // PASSO 2: Validar padrão/tamanho dos campos (405)
+            // A validação do ID continua aqui
+            if (id <= 0 || !validarPadraoCamposFilme(titulo, diretor, ano, sinopse, generos)) {
                 ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta); // 405
                 return resposta;
             }
@@ -225,16 +240,37 @@ public class FilmeServico {
 
     /**
      * Valida os campos de um filme contra os requisitos.
+     * /**
+     * Valida se os campos obrigatórios estão presentes (não nulos ou vazios).
+     * Usado para retornar o erro 422 (Chaves Faltantes).
      */
-    private boolean validarCamposFilme(String titulo, String diretor, String ano, String sinopse, List<String> generos) {
-        if (titulo == null || titulo.length() < 3 || titulo.length() > 30) return false;
-        if (diretor == null || diretor.length() < 3 || diretor.length() > 30) return false;
-        if (ano == null || ano.length() < 3 || ano.length() > 4 || !ano.matches("\\d+")) return false;
-        if (sinopse == null || sinopse.length() > 250) return false;
-        if (generos == null || generos.isEmpty()) return false;
+    private boolean validarCamposNulosFilme(String titulo, String diretor, String ano, String sinopse, List<String> generos) {
+        if (titulo == null || diretor == null || ano == null || sinopse == null) {
+            return false; // Um campo de texto é nulo
+        }
+        if (generos == null || generos.isEmpty()) {
+            return false; // Lista de gêneros é nula ou vazia
+        }
+        for (String g : generos) {
+            if (g == null) return false; // Um item na lista de gêneros é nulo
+        }
+        return true;
+    }
+
+    /**
+     * Valida o formato e o tamanho dos campos do filme.
+     * Assume que os campos não são nulos (verificados por validarCamposNulosFilme).
+     * Usado para retornar o erro 405 (Campos Inválidos).
+     */
+    private boolean validarPadraoCamposFilme(String titulo, String diretor, String ano, String sinopse, List<String> generos) {
+        if (titulo.length() < 3 || titulo.length() > 30) return false;
+        if (diretor.length() < 3 || diretor.length() > 30) return false;
+        if (ano.length() < 3 || ano.length() > 4 || !ano.matches("\\d+")) return false;
+        if (sinopse.length() > 250) return false;
 
         for (String g : generos) {
-            if (g == null || !this.generosValidos.contains(g.toLowerCase())) return false;
+            // g == null já foi verificado em validarCamposNulosFilme
+            if (!this.generosValidos.contains(g.toLowerCase())) return false; // Gênero não existe
         }
 
         return true;
