@@ -41,6 +41,46 @@ SQL
         senha VARCHAR(255) NOT NULL
     );
 
+Use o banco de dados voteflix e crie a tabela filmes executando o script abaixo. A tabela fimes é necessária para armazenar as credenciais.
+SQL
+
+    USE voteflix;
+
+    CREATE TABLE filmes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        titulo VARCHAR(255) NOT NULL,
+        diretor VARCHAR(255) NOT NULL,
+        ano VARCHAR(4) NOT NULL,
+        sinopse VARCHAR(255) NOT NULL,
+        -- Adiciona uma restrição UNIQUE para evitar filmes duplicados
+        UNIQUE KEY uk_filme (titulo, diretor, ano)
+    );
+
+Use o banco de dados voteflix e crie a tabela de genêros pré-cadastrados executando o script abaixo. A tabela generos é necessária para armazenar as credenciais.
+SQL
+
+    USE voteflix;
+
+    CREATE TABLE generos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL UNIQUE
+);
+
+Execute o comando abaixo para popular a tabela generos com os valores padrão.
+
+    INSERT INTO generos (nome) VALUES
+    ('Ação'),
+    ('Aventura'),
+    ('Comédia'),
+    ('Drama'),
+    ('Fantasia'),
+    ('Ficção Científica'),
+    ('Terror'),
+    ('Romance'),
+    ('Documentário'),
+    ('Musical'),
+    ('Animação');
+
 Passo 2: Configurar Credenciais do Banco
 
     Abra o arquivo de configuração de conexão do banco no projeto: src/main/java/org/voteflix/util/ConexaoBancoDados.java
