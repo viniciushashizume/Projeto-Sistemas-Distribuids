@@ -5,6 +5,7 @@ import org.voteflix.servidor.servico.FilmeServico; // NOVO IMPORT
 import org.voteflix.servidor.servico.UsuarioServico;
 import org.voteflix.servidor.gui.TelaServidor;
 import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
+import org.voteflix.servidor.servico.ReviewServico; // NOVO IMPORT
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,6 +20,7 @@ public class ClienteHandler extends Thread {
     private final UsuarioServico usuarioServico;
     private final TelaServidor telaServidor;
     private final FilmeServico filmeServico;
+    private final ReviewServico reviewServico; // NOVO
     private String nomeUsuarioLogado = null;
 
     public ClienteHandler(Socket socket, TelaServidor tela) {
@@ -26,6 +28,7 @@ public class ClienteHandler extends Thread {
         this.usuarioServico = new UsuarioServico();
         this.telaServidor = tela;
         this.filmeServico = new FilmeServico();
+        this.reviewServico = new ReviewServico();
     }
 
     @Override
@@ -104,6 +107,15 @@ public class ClienteHandler extends Thread {
                     return filmeServico.editarFilme(requisicao);
                 case "EXCLUIR_FILME":
                     return filmeServico.excluirFilme(requisicao);
+                // --- REVIEWS (NOVO) ---
+                case "CRIAR_REVIEW":
+                    return reviewServico.criarReview(requisicao);
+                case "EDITAR_REVIEW":
+                    return reviewServico.editarReview(requisicao);
+                case "EXCLUIR_REVIEW":
+                    return reviewServico.excluirReview(requisicao);
+                case "BUSCAR_FILME_ID":
+                    return filmeServico.buscarFilmePorId(requisicao);
                 default:
                     resposta = new JSONObject();
                     ProtocoloMensagem.ERRO_OPERACAO_INVALIDA.aplicar(resposta); // 400

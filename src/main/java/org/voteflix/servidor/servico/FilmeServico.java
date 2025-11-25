@@ -5,6 +5,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.voteflix.bd.FilmeBD;
 import org.voteflix.model.Filme;
+import org.voteflix.bd.ReviewBD;
+import org.voteflix.model.Review;
 import org.voteflix.util.JwtUtil;
 import org.voteflix.util.ProtocoloMensagem;
 
@@ -19,9 +21,11 @@ public class FilmeServico {
 
     private final FilmeBD filmeBD;
     private final Set<String> generosValidos;
+    private final ReviewBD reviewBD; // Injeção do ReviewBD
 
     public FilmeServico() {
         this.filmeBD = new FilmeBD();
+        this.reviewBD = new ReviewBD(); // Instancia
         Set<String> generosCarregados;
         try {
             Set<String> nomesLimpos = filmeBD.getNomesGenerosValidos();
@@ -219,6 +223,58 @@ public class FilmeServico {
         } catch (Exception e) {
             ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta); // 401
             e.printStackTrace(); // LOG DE ERRO
+        }
+        return resposta;
+    }
+
+    public JSONObject buscarFilmePorId(JSONObject requisicao) {
+        JSONObject resposta = new JSONObject();
+        try {
+            String token = requisicao.getString("token");
+            JwtUtil.getIdFromToken(token); // Apenas valida o token
+
+            int idFilme = Integer.parseInt(requisicao.getString("id_filme"));
+
+            Filme filme = filmeBD.buscarFilmePorId(idFilme);
+
+            if (filme == null) {
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
+                return resposta;
+            }
+
+            // Busca as reviews
+            List<Review> reviews = reviewBD.listarReviewsPorFilme(idFilme);
+
+            // Monta resposta
+            ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta);
+
+            // Adiciona objeto filme
+            resposta.put("filme", filme.toJSONObject());
+
+            // Adiciona array de reviews
+            JSONArray reviewsJson = new JSONArray();
+            for (Review r : reviews) {
+                // Criação manual do JSON de review para garantir formato ou usar helper se houver na Model
+                JSONObject rJson = new JSONObject();
+                rJson.put("id", String.valueOf(r.getId()));
+                rJson.put("id_filme", String.valueOf(r.getIdFilme()));
+                rJson.put("nome_usuario", r.getNomeUsuario());
+                rJson.put("nota", String.valueOf(r.getNota()));
+                rJson.put("titulo", r.getTitulo());
+                rJson.put("descricao", r.getDescricao());
+                rJson.put("data", r.getData());
+                rJson.put("editado", String.valueOf(r.isEditado()));
+                reviewsJson.put(rJson);
+            }
+            resposta.put("reviews", reviewsJson);
+
+        } catch (NumberFormatException | JSONException e) {
+            ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
+        } catch (SQLException e) {
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta);
+            e.printStackTrace();
+        } catch (Exception e) {
+            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta);
         }
         return resposta;
     }

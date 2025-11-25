@@ -90,12 +90,13 @@ public class FilmeBD {
      */
     public List<Filme> listarTodosFilmes() throws SQLException {
         List<Filme> filmes = new ArrayList<>();
-        // CORREÇÃO: Seleciona colunas explícitas e não usa f.*
-        String sql = "SELECT f.id, f.titulo, f.diretor, f.ano, f.sinopse, GROUP_CONCAT(TRIM(g.nome) SEPARATOR ',') AS generos " +
+
+        // CORREÇÃO: Adicionado f.nota e f.qtd_avaliacoes no SELECT
+        String sql = "SELECT f.id, f.titulo, f.diretor, f.ano, f.sinopse, f.nota, f.qtd_avaliacoes, GROUP_CONCAT(TRIM(g.nome) SEPARATOR ',') AS generos " +
                 "FROM filmes f " +
                 "LEFT JOIN filmes_generos fg ON f.id = fg.id_filme " +
                 "LEFT JOIN generos g ON fg.id_genero = g.id " +
-                "GROUP BY f.id, f.titulo, f.diretor, f.ano, f.sinopse"; // GROUP BY atualizado
+                "GROUP BY f.id, f.titulo, f.diretor, f.ano, f.sinopse, f.nota, f.qtd_avaliacoes";
 
         try (Connection conn = ConexaoBancoDados.conectar();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -108,15 +109,15 @@ public class FilmeBD {
                     generosList.addAll(List.of(generosDb.split(",")));
                 }
 
-                // CORREÇÃO: Passa 0.0 e 0 manualmente, pois não vêm do BD
+                // CORREÇÃO: Agora recupera a nota e qtd do ResultSet
                 filmes.add(new Filme(
                         rs.getInt("id"),
                         rs.getString("titulo"),
                         rs.getString("diretor"),
                         rs.getString("ano"),
                         rs.getString("sinopse"),
-                        0.0, // Hardcoded nota
-                        0,   // Hardcoded qtd_avaliacoes
+                        rs.getDouble("nota"),           // Recupera do BD
+                        rs.getInt("qtd_avaliacoes"),    // Recupera do BD
                         generosList
                 ));
             }
@@ -228,4 +229,58 @@ public class FilmeBD {
         }
         return generos;
     }
+    public Filme buscarFilmePorId(int id) throws SQLException {
+        String sql = "SELECT f.id, f.titulo, f.diretor, f.ano, f.sinopse, f.nota, f.qtd_avaliacoes, GROUP_CONCAT(TRIM(g.nome) SEPARATOR ',') AS generos " +
+                "FROM filmes f " +
+                "LEFT JOIN filmes_generos fg ON f.id = fg.id_filme " +
+                "LEFT JOIN generos g ON fg.id_genero = g.id " +
+                "WHERE f.id = ? " +
+                "GROUP BY f.id, f.titulo, f.diretor, f.ano, f.sinopse, f.nota, f.qtd_avaliacoes";
+
+        try (Connection conn = ConexaoBancoDados.conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                List<String> generosList = new ArrayList<>();
+                String generosDb = rs.getString("generos");
+                if (generosDb != null && !generosDb.isEmpty()) {
+                    generosList.addAll(List.of(generosDb.split(",")));
+                }
+
+                return new Filme(
+                        rs.getInt("id"),
+                        rs.getString("titulo"),
+                        rs.getString("diretor"),
+                        rs.getString("ano"),
+                        rs.getString("sinopse"),
+                        rs.getDouble("nota"),           // Recupera a nota atualizada
+                        rs.getInt("qtd_avaliacoes"),    // Recupera a qtd atualizada
+                        generosList
+                );
+            }
+        }
+        return null; // Não encontrado
+    }
+
+    /**
+     * Atualiza a nota média e a quantidade de avaliações de um filme.
+     */
+    public void atualizarNotaFilme(int idFilme, double novaNota, int novaQtd) throws SQLException {
+        String sql = "UPDATE filmes SET nota = ?, qtd_avaliacoes = ? WHERE id = ?";
+        try (Connection conn = ConexaoBancoDados.conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setDouble(1, novaNota);
+            pstmt.setInt(2, novaQtd);
+            pstmt.setInt(3, idFilme);
+            pstmt.executeUpdate();
+        }
+    }
+
+    // ... (Demais métodos existentes: adicionarFilme, verificarFilmeUnico, listarTodosFilmes, atualizarFilme, excluirFilme, getNomesGenerosValidos) ...
+    // Certifique-se de que o método excluirFilme chame ReviewBD.excluirReviewsPorFilme se ainda não chamar,
+    // ou se o banco tiver DELETE CASCADE configurado, não precisa.
+    // O código anterior de excluirFilme já estava ok com a transação se você adicionar a chamada da ReviewBD lá dentro,
+    // mas para manter simples, a responsabilidade de apagar reviews pode ficar no FilmeBD ou via FK.
 }
