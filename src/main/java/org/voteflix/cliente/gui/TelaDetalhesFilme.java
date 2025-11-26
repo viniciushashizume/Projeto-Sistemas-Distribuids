@@ -191,7 +191,7 @@ public class TelaDetalhesFilme extends JDialog {
             JSONObject json = new JSONObject(res);
 
             if ("200".equals(json.getString("status"))) {
-                JOptionPane.showMessageDialog(this, "Review excluída com sucesso.");
+                JOptionPane.showMessageDialog(this, json.getString("mensagem"));
                 carregarDadosFilme();
             } else {
                 String msg = ProtocoloMensagem.getByStatus(json.getString("status")).getMensagem();

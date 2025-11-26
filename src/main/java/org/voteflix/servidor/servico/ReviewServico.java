@@ -25,29 +25,38 @@ public class ReviewServico {
     public JSONObject criarReview(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
-            // 1. Validar Token e Identificar Usuário
-            String token = requisicao.getString("token");
-            // CORREÇÃO: Método correto é getNomeFromToken
-            String nomeUsuario = JwtUtil.getNomeFromToken(token);
+            // Validação 422: Verifica se as chaves principais existem antes de processar
+            if (!requisicao.has("token") || !requisicao.has("review")) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
+                return resposta;
+            }
 
             JSONObject reviewJson = requisicao.getJSONObject("review");
-            // Insere o nome do usuário no JSON para criar o objeto Review
-            reviewJson.put("nome_usuario", nomeUsuario);
 
-            // Adiciona data atual
+            // Validação 422: Campos obrigatórios dentro do objeto review
+            if (!reviewJson.has("id_filme") || !reviewJson.has("titulo") ||
+                    !reviewJson.has("descricao") || !reviewJson.has("nota")) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
+                return resposta;
+            }
+
+            String token = requisicao.getString("token");
+            String nomeUsuario = JwtUtil.getNomeFromToken(token);
+
+            // Montagem do objeto
+            reviewJson.put("nome_usuario", nomeUsuario);
             String dataAtual = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             reviewJson.put("data", dataAtual);
 
             Review novaReview = new Review(reviewJson);
 
-            // 2. Validações de Campos (422 e 405)
+            // Validação 405: Conteúdo inválido (vazio, tamanho excedido, nota fora do range)
             if (!validarCamposReview(novaReview)) {
                 ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta);
                 return resposta;
             }
 
             // 3. Verificar se Filme existe (404)
-            // Certifique-se de que FilmeBD possui o método buscarFilmePorId
             if (filmeBD.buscarFilmePorId(novaReview.getIdFilme()) == null) {
                 ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta);
                 return resposta;
@@ -59,7 +68,6 @@ public class ReviewServico {
                 return resposta;
             }
 
-            // 5. Persistir Review
             boolean sucesso = reviewBD.adicionarReview(novaReview);
 
             if (sucesso) {
@@ -69,6 +77,9 @@ public class ReviewServico {
                 ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta);
             }
 
+        } catch (NumberFormatException e) {
+            // ID do filme inválido (ex: texto onde deveria ser número) -> 400 Bad Request
+            ProtocoloMensagem.ERRO_OPERACAO_INVALIDA.aplicar(resposta);
         } catch (JSONException e) {
             ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
         } catch (SQLException e) {
@@ -84,14 +95,24 @@ public class ReviewServico {
     public JSONObject editarReview(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
-            String token = requisicao.getString("token");
-            // CORREÇÃO: Método correto é getNomeFromToken
-            String nomeUsuario = JwtUtil.getNomeFromToken(token);
+            if (!requisicao.has("token") || !requisicao.has("review")) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
+                return resposta;
+            }
 
             JSONObject reviewJson = requisicao.getJSONObject("review");
-            int idReview = reviewJson.optInt("id", -1);
 
-            // Buscar review existente
+            // Validação 422: Garante que todos os campos para edição foram enviados
+            if (!reviewJson.has("id") || !reviewJson.has("titulo") ||
+                    !reviewJson.has("descricao") || !reviewJson.has("nota")) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
+                return resposta;
+            }
+
+            String token = requisicao.getString("token");
+            String nomeUsuario = JwtUtil.getNomeFromToken(token);
+
+            int idReview = reviewJson.getInt("id");
             Review reviewExistente = reviewBD.buscarReviewPorId(idReview);
 
             // 1. Validar existência (404)
@@ -100,30 +121,35 @@ public class ReviewServico {
                 return resposta;
             }
 
-            // 2. Validar permissão (Apenas o dono pode editar)
+            // 2. Validar permissão (403)
             if (!reviewExistente.getNomeUsuario().equals(nomeUsuario)) {
                 ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta);
                 return resposta;
             }
 
-            // Validação de campos (405)
-            double novaNota = reviewJson.optDouble("nota", -1);
-            String novoTitulo = reviewJson.optString("titulo");
-            String novaDescricao = reviewJson.optString("descricao");
+            // Validação 405: Valores dos campos
+            double novaNota = reviewJson.getDouble("nota");
+            String novoTitulo = reviewJson.getString("titulo");
+            String novaDescricao = reviewJson.getString("descricao");
 
-            if (novaNota < 0 || novaNota > 5 || novoTitulo.isEmpty() || novaDescricao.isEmpty()) {
+            if (novaNota < 0 || novaNota > 5 || novoTitulo.trim().isEmpty() ||
+                    novoTitulo.length() > 50 || novaDescricao.trim().isEmpty() || novaDescricao.length() > 250) {
                 ProtocoloMensagem.ERRO_CAMPOS_INVALIDOS.aplicar(resposta);
                 return resposta;
             }
 
-            // Prepara objeto para atualização (mantendo dados sensíveis originais)
-            JSONObject updateJson = reviewJson;
+            // Prepara objeto para atualização
+            JSONObject updateJson = new JSONObject();
             updateJson.put("id", idReview);
             updateJson.put("id_filme", reviewExistente.getIdFilme());
             updateJson.put("nome_usuario", nomeUsuario);
+            updateJson.put("titulo", novoTitulo);
+            updateJson.put("descricao", novaDescricao);
+            updateJson.put("nota", String.valueOf(novaNota));
             updateJson.put("data", reviewExistente.getData());
-            Review reviewAtualizada = new Review(updateJson);
+            updateJson.put("editado", true);
 
+            Review reviewAtualizada = new Review(updateJson);
             boolean sucesso = reviewBD.atualizarReview(reviewAtualizada);
 
             if (sucesso) {
@@ -133,8 +159,10 @@ public class ReviewServico {
                 ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta);
             }
 
+        } catch (NumberFormatException e) {
+            ProtocoloMensagem.ERRO_OPERACAO_INVALIDA.aplicar(resposta); // 400
         } catch (JSONException e) {
-            ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
+            ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta); // 422
         } catch (SQLException e) {
             e.printStackTrace();
             ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta);
@@ -148,11 +176,16 @@ public class ReviewServico {
     public JSONObject excluirReview(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
+            if (!requisicao.has("token") || !requisicao.has("id")) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
+                return resposta;
+            }
+
             String token = requisicao.getString("token");
-            // CORREÇÃO: Método correto é getNomeFromToken
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
             String funcao = JwtUtil.getFuncaoFromToken(token);
 
+            // CORREÇÃO: Tratamento de erro de ID inválido (NumberFormatException)
             int idReview = Integer.parseInt(requisicao.getString("id"));
             Review review = reviewBD.buscarReviewPorId(idReview);
 
@@ -179,7 +212,10 @@ public class ReviewServico {
                 ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta);
             }
 
-        } catch (NumberFormatException | JSONException e) {
+        } catch (NumberFormatException e) {
+            // Se o ID não for um número válido, retorna 400 (Bad Request) conforme protocolo
+            ProtocoloMensagem.ERRO_OPERACAO_INVALIDA.aplicar(resposta);
+        } catch (JSONException e) {
             ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -194,7 +230,6 @@ public class ReviewServico {
     private void recalcularNotaFilme(int idFilme) {
         try {
             double[] dados = reviewBD.calcularMediaEQuantidade(idFilme);
-            // Certifique-se de que FilmeBD possui o método atualizarNotaFilme
             filmeBD.atualizarNotaFilme(idFilme, dados[0], (int) dados[1]);
         } catch (SQLException e) {
             System.err.println("Erro ao recalcular nota do filme " + idFilme);
@@ -203,8 +238,8 @@ public class ReviewServico {
     }
 
     private boolean validarCamposReview(Review review) {
-        if (review.getTitulo() == null || review.getTitulo().length() > 50) return false;
-        if (review.getDescricao() == null || review.getDescricao().length() > 250) return false;
+        if (review.getTitulo() == null || review.getTitulo().trim().isEmpty() || review.getTitulo().length() > 50) return false;
+        if (review.getDescricao() == null || review.getDescricao().trim().isEmpty() || review.getDescricao().length() > 250) return false;
         if (review.getNota() < 0 || review.getNota() > 5) return false;
         return review.getIdFilme() > 0;
     }

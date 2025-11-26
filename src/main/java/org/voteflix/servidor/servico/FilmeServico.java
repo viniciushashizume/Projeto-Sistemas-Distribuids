@@ -230,31 +230,28 @@ public class FilmeServico {
     public JSONObject buscarFilmePorId(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
+            // ... validação token ...
             String token = requisicao.getString("token");
-            JwtUtil.getIdFromToken(token); // Apenas valida o token
+            JwtUtil.getIdFromToken(token);
 
-            int idFilme = Integer.parseInt(requisicao.getString("id_filme"));
-
-            Filme filme = filmeBD.buscarFilmePorId(idFilme);
-
-            if (filme == null) {
-                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta); // 404
+            if (!requisicao.has("id_filme")) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
                 return resposta;
             }
 
-            // Busca as reviews
+            int idFilme = Integer.parseInt(requisicao.getString("id_filme"));
+            // ... restante do código igual ...
+            Filme filme = filmeBD.buscarFilmePorId(idFilme);
+            if (filme == null) {
+                ProtocoloMensagem.ERRO_RECURSO_INEXISTENTE.aplicar(resposta);
+                return resposta;
+            }
             List<Review> reviews = reviewBD.listarReviewsPorFilme(idFilme);
-
-            // Monta resposta
             ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta);
-
-            // Adiciona objeto filme
             resposta.put("filme", filme.toJSONObject());
 
-            // Adiciona array de reviews
             JSONArray reviewsJson = new JSONArray();
             for (Review r : reviews) {
-                // Criação manual do JSON de review para garantir formato ou usar helper se houver na Model
                 JSONObject rJson = new JSONObject();
                 rJson.put("id", String.valueOf(r.getId()));
                 rJson.put("id_filme", String.valueOf(r.getIdFilme()));
@@ -268,13 +265,12 @@ public class FilmeServico {
             }
             resposta.put("reviews", reviewsJson);
 
-        } catch (NumberFormatException | JSONException e) {
-            ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
-        } catch (SQLException e) {
-            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta);
-            e.printStackTrace();
+        } catch (NumberFormatException e) {
+            ProtocoloMensagem.ERRO_OPERACAO_INVALIDA.aplicar(resposta); // 400
         } catch (Exception e) {
-            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta);
+            // Tratamento genérico ou token
+            if (e instanceof JSONException) ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
+            else ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta);
         }
         return resposta;
     }

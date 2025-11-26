@@ -83,10 +83,10 @@ public class TelaFormularioReview extends JDialog {
         String descricao = txtDescricao.getText().trim();
         String nota = (String) comboNota.getSelectedItem();
 
-        if (titulo.isEmpty() || descricao.isEmpty()) {
+        /*if (titulo.isEmpty() || descricao.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
-        }
+        }*/
 
         JSONObject jsonReview = new JSONObject();
         jsonReview.put("titulo", titulo);
