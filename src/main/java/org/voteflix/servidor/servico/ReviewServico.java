@@ -1,5 +1,6 @@
 package org.voteflix.servidor.servico;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.voteflix.bd.FilmeBD;
@@ -11,6 +12,7 @@ import org.voteflix.util.ProtocoloMensagem;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class ReviewServico {
 
@@ -226,6 +228,52 @@ public class ReviewServico {
         }
         return resposta;
     }
+
+    // --- NOVO MÉTODO QUE ESTAVA FALTANDO ---
+    public JSONObject listarReviewsUsuario(JSONObject requisicao) {
+        JSONObject resposta = new JSONObject();
+        try {
+            if (!requisicao.has("token")) {
+                ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
+                return resposta;
+            }
+
+            String token = requisicao.getString("token");
+            // O nome do usuário é extraído do token (segurança)
+            String nomeUsuario = JwtUtil.getNomeFromToken(token);
+
+            // Chama o método no BD (que agora existe em ReviewBD)
+            List<Review> reviews = reviewBD.listarReviewsPorUsuario(nomeUsuario);
+
+            JSONArray reviewsJson = new JSONArray();
+            for (Review r : reviews) {
+                // Reconstrói o JSON do review conforme o protocolo
+                JSONObject rObj = new JSONObject();
+                rObj.put("id", r.getId());
+                rObj.put("id_filme", r.getIdFilme());
+                rObj.put("nome_usuario", r.getNomeUsuario());
+                rObj.put("nota", String.valueOf(r.getNota()));
+                rObj.put("titulo", r.getTitulo());
+                rObj.put("descricao", r.getDescricao());
+                rObj.put("data", r.getData());
+                rObj.put("editado", String.valueOf(r.isEditado()));
+
+                reviewsJson.put(rObj);
+            }
+
+            resposta.put("reviews", reviewsJson);
+            ProtocoloMensagem.SUCESSO_OPERACAO.aplicar(resposta);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            ProtocoloMensagem.ERRO_FALHA_INTERNA.aplicar(resposta);
+        } catch (Exception e) {
+            e.printStackTrace();
+            ProtocoloMensagem.ERRO_TOKEN_INVALIDO.aplicar(resposta);
+        }
+        return resposta;
+    }
+    // ----------------------------------------
 
     private void recalcularNotaFilme(int idFilme) {
         try {

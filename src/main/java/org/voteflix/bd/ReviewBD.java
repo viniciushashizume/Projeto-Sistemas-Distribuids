@@ -85,6 +85,23 @@ public class ReviewBD {
         return reviews;
     }
 
+    /**
+     * Lista todas as reviews feitas por um usuário específico.
+     */
+    public List<Review> listarReviewsPorUsuario(String nomeUsuario) throws SQLException {
+        List<Review> reviews = new ArrayList<>();
+        String sql = "SELECT * FROM reviews WHERE nome_usuario = ?";
+        try (Connection conn = ConexaoBancoDados.conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, nomeUsuario);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                reviews.add(mapearReview(rs));
+            }
+        }
+        return reviews;
+    }
+
     public Review buscarReviewPorId(int id) throws SQLException {
         String sql = "SELECT * FROM reviews WHERE id = ?";
         try (Connection conn = ConexaoBancoDados.conectar();

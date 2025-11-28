@@ -114,6 +114,8 @@ public class ClienteHandler extends Thread {
                     return reviewServico.editarReview(requisicao);
                 case "EXCLUIR_REVIEW":
                     return reviewServico.excluirReview(requisicao);
+                case "LISTAR_REVIEWS_USUARIO":
+                    return reviewServico.listarReviewsUsuario(requisicao);
                 case "BUSCAR_FILME_ID":
                     return filmeServico.buscarFilmePorId(requisicao);
                 default:

@@ -2,7 +2,7 @@ package org.voteflix.cliente.gui;
 
 import org.voteflix.cliente.servico.ServicoCliente;
 import org.json.JSONObject;
-import org.voteflix.util.ProtocoloMensagem; // Importar o Enum
+import org.voteflix.util.ProtocoloMensagem;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,7 +15,6 @@ public class TelaPrincipal extends JFrame {
     private String token;
     private boolean isAdmin;
 
-    // --- CONSTRUTOR CORRIGIDO ---
     public TelaPrincipal(String token, boolean isAdmin) {
         super("VoteFlix - Painel do Usuário");
         this.token = token;
@@ -30,7 +29,6 @@ public class TelaPrincipal extends JFrame {
             }
         });
 
-        // Aumentei a largura para acomodar os botões de admin
         setSize(700, 400);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -42,33 +40,29 @@ public class TelaPrincipal extends JFrame {
 
         JPanel painelAcoes = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
-        // --- LÓGICA DE BOTÕES CORRIGIDA ---
-
-        // Botões visíveis para TODOS
+        // --- Botões visíveis para TODOS ---
         JButton botaoListarFilmes = new JButton("Ver Filmes");
         JButton botaoMinhaConta = new JButton("Minha Conta");
+        JButton botaoMinhasReviews = new JButton("Minhas Reviews"); // NOVO BOTÃO
         JButton botaoEditar = new JButton("Editar Minha Conta");
-        JButton botaoLogout = new JButton("Logout"); // Movido para o grupo comum
+        JButton botaoLogout = new JButton("Logout");
 
         painelAcoes.add(botaoListarFilmes);
         painelAcoes.add(botaoMinhaConta);
+        painelAcoes.add(botaoMinhasReviews); // ADICIONADO AO PAINEL
         painelAcoes.add(botaoEditar);
-        painelAcoes.add(botaoLogout); // Adicionado junto com os outros botões comuns
+        painelAcoes.add(botaoLogout);
 
-        // Botões específicos de permissão
+        // --- Botões específicos de permissão ---
         if (isAdmin) {
-            // Botões exclusivos de ADMIN
             JButton botaoGerenciarFilmes = new JButton("Gerenciar Filmes (Admin)");
-            JButton botaoGerenciarUsuarios = new JButton("Gerenciar Usuários (Admin)"); // <-- ESTE BOTÃO
+            JButton botaoGerenciarUsuarios = new JButton("Gerenciar Usuários (Admin)");
             painelAcoes.add(botaoGerenciarFilmes);
-            painelAcoes.add(botaoGerenciarUsuarios); // <-- ESTA LINHA
+            painelAcoes.add(botaoGerenciarUsuarios);
 
-            // Listeners dos botões de admin
             botaoGerenciarFilmes.addActionListener(e -> abrirTelaGerenciarFilmes());
             botaoGerenciarUsuarios.addActionListener(e -> abrirTelaGerenciarUsuarios());
-
         } else {
-            // Botão "Excluir Minha Conta" é SÓ para usuário comum (Requisito [source 206])
             JButton botaoExcluir = new JButton("Excluir Minha Conta");
             painelAcoes.add(botaoExcluir);
             botaoExcluir.addActionListener(e -> confirmarExclusao());
@@ -76,25 +70,20 @@ public class TelaPrincipal extends JFrame {
 
         add(painelAcoes, BorderLayout.SOUTH);
 
-        // Listeners dos botões comuns
+        // --- Listeners dos botões comuns ---
         botaoListarFilmes.addActionListener(e -> abrirTelaListarFilmes());
         botaoMinhaConta.addActionListener(e -> abrirTelaMinhaConta());
+        botaoMinhasReviews.addActionListener(e -> abrirTelaMinhasReviews()); // NOVO LISTENER
         botaoEditar.addActionListener(e -> abrirTelaEdicao());
         botaoLogout.addActionListener(e -> realizarLogout());
-        // Listener de 'botaoExcluir' agora está dentro do 'else'
     }
 
-    // --- FIM DA CORREÇÃO ---
-
-    // --- NOVOS MÉTODOS PARA ABRIR TELAS ---
     private void abrirTelaListarFilmes() {
-        // Esta tela serve tanto para admin quanto para usuário comum
         TelaListarFilmes telaFilmes = new TelaListarFilmes(this, token, this.isAdmin, false);
         telaFilmes.setVisible(true);
     }
 
     private void abrirTelaGerenciarFilmes() {
-        // Abre a mesma tela de filmes, mas no modo "Gerenciamento"
         TelaListarFilmes telaFilmes = new TelaListarFilmes(this, token, this.isAdmin, true);
         telaFilmes.setVisible(true);
     }
@@ -103,14 +92,18 @@ public class TelaPrincipal extends JFrame {
         TelaGerenciarUsuarios telaUsuarios = new TelaGerenciarUsuarios(this, token);
         telaUsuarios.setVisible(true);
     }
-    // --- FIM DOS NOVOS MÉTODOS ---
-
-
 
     private void abrirTelaEdicao() {
         TelaEditarUsuario telaEditar = new TelaEditarUsuario(this, token);
         telaEditar.setVisible(true);
     }
+
+    // --- NOVO MÉTODO ---
+    private void abrirTelaMinhasReviews() {
+        TelaMinhasReviews telaReviews = new TelaMinhasReviews(this, token);
+        telaReviews.setVisible(true);
+    }
+    // -------------------
 
     private void confirmarExclusao() {
         int resposta = JOptionPane.showConfirmDialog(
