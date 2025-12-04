@@ -27,22 +27,29 @@ public class ReviewServico {
     public JSONObject criarReview(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
-            // Validação 422: Verifica se as chaves principais existem antes de processar
             if (!requisicao.has("token") || !requisicao.has("review")) {
                 ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
                 return resposta;
             }
 
+            String token = requisicao.getString("token");
+            String funcaoUsuario = JwtUtil.getFuncaoFromToken(token);
+
+            if ("admin".equalsIgnoreCase(funcaoUsuario)) {
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta);
+                return resposta;
+            }
+
+
             JSONObject reviewJson = requisicao.getJSONObject("review");
 
-            // Validação 422: Campos obrigatórios dentro do objeto review
+
             if (!reviewJson.has("id_filme") || !reviewJson.has("titulo") ||
                     !reviewJson.has("descricao") || !reviewJson.has("nota")) {
                 ProtocoloMensagem.ERRO_CHAVES_FALTANTES.aplicar(resposta);
                 return resposta;
             }
 
-            String token = requisicao.getString("token");
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
 
             // Montagem do objeto
@@ -102,6 +109,15 @@ public class ReviewServico {
                 return resposta;
             }
 
+            String token = requisicao.getString("token");
+            String funcaoUsuario = JwtUtil.getFuncaoFromToken(token);
+
+            // Bloqueia Admin de editar review (mesmo que ele tivesse uma)
+            if ("admin".equalsIgnoreCase(funcaoUsuario)) {
+                ProtocoloMensagem.ERRO_SEM_PERMISSAO.aplicar(resposta);
+                return resposta;
+            }
+
             JSONObject reviewJson = requisicao.getJSONObject("review");
 
             // Validação 422: Garante que todos os campos para edição foram enviados
@@ -111,7 +127,7 @@ public class ReviewServico {
                 return resposta;
             }
 
-            String token = requisicao.getString("token");
+            //String token = requisicao.getString("token");
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
 
             int idReview = reviewJson.getInt("id");
@@ -187,7 +203,6 @@ public class ReviewServico {
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
             String funcao = JwtUtil.getFuncaoFromToken(token);
 
-            // CORREÇÃO: Tratamento de erro de ID inválido (NumberFormatException)
             int idReview = Integer.parseInt(requisicao.getString("id"));
             Review review = reviewBD.buscarReviewPorId(idReview);
 
@@ -229,7 +244,7 @@ public class ReviewServico {
         return resposta;
     }
 
-    // --- NOVO MÉTODO QUE ESTAVA FALTANDO ---
+
     public JSONObject listarReviewsUsuario(JSONObject requisicao) {
         JSONObject resposta = new JSONObject();
         try {
@@ -239,15 +254,14 @@ public class ReviewServico {
             }
 
             String token = requisicao.getString("token");
-            // O nome do usuário é extraído do token (segurança)
+
             String nomeUsuario = JwtUtil.getNomeFromToken(token);
 
-            // Chama o método no BD (que agora existe em ReviewBD)
             List<Review> reviews = reviewBD.listarReviewsPorUsuario(nomeUsuario);
 
             JSONArray reviewsJson = new JSONArray();
             for (Review r : reviews) {
-                // Reconstrói o JSON do review conforme o protocolo
+
                 JSONObject rObj = new JSONObject();
                 rObj.put("id", r.getId());
                 rObj.put("id_filme", r.getIdFilme());

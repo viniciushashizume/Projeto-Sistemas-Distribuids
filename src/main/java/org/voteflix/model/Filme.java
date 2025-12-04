@@ -7,10 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale; // IMPORTAR ISSO
 
-/**
- * Modelo para representar um Filme (servidor e cliente).
- * Contém todos os construtores necessários.
- */
 public class Filme {
     private int id;
     private String titulo;
@@ -125,7 +121,7 @@ public class Filme {
 
     @Override
     public String toString() {
-        // Formata a nota para sempre ter uma casa decimal (ex: 5.0)
-        return String.format(Locale.US, "%s (%s) - Nota: %.1f", titulo, ano, nota);
+        // Formata a nota para sempre ter uma casa decimal
+        return String.format(Locale.US, "%s (%s) - Nota: %.2f", titulo, ano, nota);
     }
 }

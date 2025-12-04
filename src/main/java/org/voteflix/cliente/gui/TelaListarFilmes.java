@@ -22,14 +22,8 @@ public class TelaListarFilmes extends JDialog {
     private DefaultListModel<Filme> listModel;
     private List<Filme> todosFilmes;
 
-    // ... (Construtor e demais métodos permanecem iguais até verDetalhes) ...
-    // Estou omitindo o código repetido para focar na alteração.
-    // Copie o restante da classe do arquivo original e substitua apenas o método abaixo.
-
-    // ... código anterior ...
 
     public TelaListarFilmes(Frame owner, String token, boolean isAdmin, boolean modoGerenciamento) {
-        // ... (código existente do construtor mantido) ...
         super(owner, "VoteFlix - Lista de Filmes", true);
         this.token = token;
         this.isAdmin = isAdmin;
@@ -83,13 +77,13 @@ public class TelaListarFilmes extends JDialog {
 
         add(painelBotoes, BorderLayout.SOUTH);
 
-        // Listener para Ver Detalhes (ALTERADO)
+        JButton botaoAtualizar = new JButton("Atualizar Lista");
+        botaoAtualizar.addActionListener(e -> carregarFilmes()); // Chama o método que busca os dados novamente
+        painelBotoes.add(botaoAtualizar);
         botaoVerDetalhes.addActionListener(e -> verDetalhes());
 
         carregarFilmes();
     }
-
-    // ... (Métodos carregarFilmes e filtrarFilmes mantidos) ...
 
     private void carregarFilmes() {
         JSONObject requisicao = new JSONObject();
@@ -138,7 +132,7 @@ public class TelaListarFilmes extends JDialog {
         }
     }
 
-    // --- MÉTODO ALTERADO ---
+
     private void verDetalhes() {
         Filme selecionado = listaFilmes.getSelectedValue();
         if (selecionado == null) {
@@ -151,7 +145,6 @@ public class TelaListarFilmes extends JDialog {
         telaDetalhes.setVisible(true);
     }
 
-    // ... (Métodos de Admin mantidos) ...
 
     private void adicionarFilme() {
         TelaFormularioFilme formulario = new TelaFormularioFilme(this, token, null);

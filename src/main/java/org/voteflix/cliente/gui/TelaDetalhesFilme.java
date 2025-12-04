@@ -153,14 +153,10 @@ public class TelaDetalhesFilme extends JDialog {
             selecionadaEhMinha = true;
         }
 
-        // Lógica de habilitação
-        // Criar: Apenas se eu NÃO tenho review ainda (Requisito: review única)
-        btnCriarReview.setEnabled(!temReviewMinha);
+        btnCriarReview.setEnabled(!temReviewMinha && !isAdmin);
 
-        // Editar: Apenas se selecionei MINHA review
-        btnEditarReview.setEnabled(selecionadaEhMinha);
+        btnEditarReview.setEnabled(selecionadaEhMinha && !isAdmin);
 
-        // Excluir: Se é minha review OU sou Admin
         btnExcluirReview.setEnabled(selecionada != null && (selecionadaEhMinha || isAdmin));
     }
 
@@ -202,7 +198,6 @@ public class TelaDetalhesFilme extends JDialog {
         }
     }
 
-    // Renderizador customizado para exibir a review bonitinha na lista
     private static class ReviewRenderer extends JPanel implements ListCellRenderer<Review> {
         private JLabel lblTitulo = new JLabel();
         private JTextArea txtDesc = new JTextArea();
@@ -228,7 +223,7 @@ public class TelaDetalhesFilme extends JDialog {
 
         @Override
         public Component getListCellRendererComponent(JList<? extends Review> list, Review value, int index, boolean isSelected, boolean cellHasFocus) {
-            lblTitulo.setText(String.format("Nota: %.1f - %s", value.getNota(), value.getTitulo()));
+            lblTitulo.setText(String.format("Nota: %.2f - %s", value.getNota(), value.getTitulo()));
             txtDesc.setText(value.getDescricao());
             String editadoStr = value.isEditado() ? "(Editado)" : "";
             lblInfo.setText(String.format("Por: %s em %s %s", value.getNomeUsuario(), value.getData(), editadoStr));

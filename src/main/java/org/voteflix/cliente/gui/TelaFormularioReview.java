@@ -40,10 +40,10 @@ public class TelaFormularioReview extends JDialog {
         formPanel.add(txtTitulo);
 
         // Nota
-        formPanel.add(new JLabel("Nota (0.0 - 5.0):"));
+        formPanel.add(new JLabel("Nota (1.0 - 5.0):"));
         // Opções de nota de 0 a 5 com decimais simples (ex: 0, 0.5, 1, 1.5...) ou apenas inteiros.
         // O requisito pede apenas validação numérica, vamos usar inteiros/meios para facilitar.
-        String[] notas = {"0", "1", "2", "3", "4", "5"};
+        String[] notas = { "1", "2", "3", "4", "5"};
         comboNota = new JComboBox<>(notas);
         formPanel.add(comboNota);
 

@@ -83,7 +83,7 @@ public class TelaMinhasReviews extends JDialog {
                         minhasReviews.add(r);
 
                         // Formatação para exibição na lista
-                        String item = String.format("Filme ID: %d | Nota: %.1f | Título: %s",
+                        String item = String.format("Filme ID: %d | Nota: %.2f | Título: %s",
                                 r.getIdFilme(), r.getNota(), r.getTitulo());
                         listModel.addElement(item);
                     }
